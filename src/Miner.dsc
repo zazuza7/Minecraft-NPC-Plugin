@@ -13,8 +13,8 @@ ChecksTargetsInventory:
         - if <player.item_in_hand.material.name> == apple:
             - inventory open d:<player.target.inventory>
 
-#Wheat tells NPC to break 8 blocks in front
-MarkExcavationSite:
+#NPC mines 6 blocks in front and receives them to its inventory
+Mine6Blocks:
     type: world
     events:
         on player right clicks air:
@@ -22,37 +22,30 @@ MarkExcavationSite:
             - define NPC <server.spawned_npcs_flagged[miner].get[1]>
 
             - note <player.cursor_on> as:target
-            - walk <location[target]> <[NPC]>
-            - wait 1s
-            - look <[NPC]> <location[target]>
-            - animate <[NPC]> <ARM_SWING>
-            - give <location[target].drops.get[1]> to:<[NPC].inventory>
-            - modifyblock <location[target]> <air>
+            - run MiningSubScript def:<[NPC]>
+            - wait 1.1s
 
             - repeat 2:
                 - note <location[target].sub[0,-1,0]> as:target
-                - walk <location[target]> <[NPC]>
-                - wait 1s
-                - look <[NPC]> <location[target]>
-                - animate <[NPC]> <ARM_SWING>
-                - give <location[target].drops.get[1]> to:<[NPC].inventory>
-                - modifyblock <location[target]> <air>
-                
+                - run MiningSubScript def:<[NPC]>
+                - wait 1.1s
                 - note <location[target].sub[1,1,0]> as:target
-                - walk <location[target]> <[NPC]>
-                - wait 1s
-                - look <[NPC]> <location[target]>
-                - animate <[NPC]> <ARM_SWING>
-                - give <location[target].drops.get[1]> to:<[NPC].inventory>
-                - modifyblock <location[target]> <air>
+                - run MiningSubScript def:<[NPC]>
+                - wait 1.1s
 
             - note <location[target].sub[0,-1,0]> as:target
-            - walk <location[target]> <[NPC]>
-            - wait 1s
-            - look <[NPC]> <location[target]>
-            - animate <[NPC]> <ARM_SWING>
-            - give <location[target].drops.get[1]> to:<[NPC].inventory>
-            - modifyblock <location[target]> <air>
+            - run MiningSubScript def:<[NPC]>
+            - wait 1.1s
+
+MiningSubScript:
+    type: task
+    script:
+        - walk <location[target]> <[1]>
+        - wait 1s
+        - look <[1]> <location[target]>
+        - animate <[1]> <ARM_SWING>
+        - give <location[target].drops.get[1]> to:<[1].inventory>
+        - modifyblock <location[target]> <air>
 
 #Carrot tells NPC to walk to a clicked location
 NPCWalk:
