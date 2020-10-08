@@ -6,7 +6,7 @@ SpawnNPC:
         - if <player.item_in_hand.material.name> == bread:
             - create player Mr.Slave <player.location>
 
-#Apple Checks targets Inventory:
+ChecksTargetsInventory:
     type: world
     events:
         on player right clicks air:
