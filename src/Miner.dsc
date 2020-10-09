@@ -2,14 +2,14 @@
 SpawnNPC:
     type: world
     events:
-        on player right clicks air:
+        on player right clicks:
         - if <player.item_in_hand.material.name> == bread:
             - create player Mr.Slave <player.location>
 
 ChecksTargetsInventory:
     type: world
     events:
-        on player right clicks air:
+        on player right clicks:
         - if <player.item_in_hand.material.name> == apple:
             - inventory open d:<player.target.inventory>
 
@@ -17,7 +17,7 @@ ChecksTargetsInventory:
 Mine6Blocks:
     type: world
     events:
-        on player right clicks air:
+        on player right clicks:
         - if <player.item_in_hand.material.name> == wheat:
             - define NPC <server.spawned_npcs_flagged[miner].get[1]>
 
@@ -41,17 +41,23 @@ MiningSubScript:
     type: task
     script:
         - walk <location[target]> <[1]>
-        - wait 1s
+        - wait 0.5s
+        - animate <[1]> ARM_SWING
         - look <[1]> <location[target]>
-        - animate <[1]> <ARM_SWING>
+        - blockcrack <location[target]> progress:<util.random.int[4].to[7]>
+        - wait 0.5s
+        - look <[1]> <location[target]>
+        - animate <[1]> ARM_SWING
         - give <location[target].drops.get[1]> to:<[1].inventory>
         - modifyblock <location[target]> <air>
+        - blockcrack <location[target]> progress:0
+        
 
 #Carrot tells NPC to walk to a clicked location
 NPCWalk:
     type: world
     events:
-        on player right clicks air:
+        on player right clicks:
         - if <player.item_in_hand.material.name> == carrot:
             - walk <player.cursor_on> <server.spawned_npcs_flagged[miner].get[1]>
 
