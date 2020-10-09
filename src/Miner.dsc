@@ -49,9 +49,8 @@ MiningSubScript:
         - look <[1]> <location[target]>
         - animate <[1]> ARM_SWING
         - give <location[target].drops.get[1]> to:<[1].inventory>
-        - modifyblock <location[target]> <air>
+        - modifyblock <location[target]> air
         - blockcrack <location[target]> progress:0
-        
 
 #Carrot tells NPC to walk to a clicked location
 NPCWalk:
@@ -61,8 +60,24 @@ NPCWalk:
         - if <player.item_in_hand.material.name> == carrot:
             - walk <player.cursor_on> <server.spawned_npcs_flagged[miner].get[1]>
 
-#Pseudo code of mining an infinite path forward
-# Break the first block
-# while true
-# Break above
-# Break forward below
+#A script, which going to return the npc to itsd starter chest and deposit its items there
+#Cant manage to implement distance checks
+NpcChest:
+    type: world
+    events:
+        on player right clicks:
+        - define NPC <server.spawned_npcs_flagged[miner].get[1]>
+        - if <player.item_in_hand.material.name> == chest:
+            - note <[NPC].location.find.blocks[chest].within[10].get[1]> as:Chest
+            - walk <[NPC]> <location[Chest]>
+#Pseudo Code
+#Note chest
+#Check every slot of chest
+#   If you have same item in your inv
+#       Transfer it
+
+# Should implement torch planting as well
+
+#Should implement nearby block checking for ore  and for dangers
+# ex narrate <player.inventory.contains.material[gold_ore]>
+# <inventory.slot[1]>
