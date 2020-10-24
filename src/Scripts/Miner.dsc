@@ -68,16 +68,50 @@ NpcChest:
         on player right clicks:
         - define NPC <server.spawned_npcs_flagged[miner].get[1]>
         - if <player.item_in_hand.material.name> == chest:
-            - note <[NPC].location.find.blocks[chest].within[10].get[1]> as:Chest
-            - walk <[NPC]> <location[Chest]>
+            - if <location[Chest]||invalid> == invalid:
+                - note <[NPC].location.find.blocks[chest].within[10].get[1]> as:Chest
+            - else:
+                - walk <[NPC]> <location[Chest]>
+                - animatechest <location[Chest]>
+                - look <[NPC]> <location[Chest]>
+                - wait 3s
+                - animatechest <location[Chest]> close
+
+
+
+#Deposits all items in a.yml config file to a chest WORKS
+
+Narrate:
+    type: world
+    events:
+        on player right clicks:
+        - define NPC <server.spawned_npcs_flagged[miner].get[1]>
+        - if <player.item_in_hand.material.name> == cooked_beef:
+            - foreach <yaml[a].read[items]> as:item:
+                - narrate <[NPC].inventory.quantity.material[<[item]>]>
+                - give <[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> to:<location[Chest].inventory>
+                - take <[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> from:<[NPC].inventory>
+                - narrate <[item]>
+                - wait 1s
+
+
+
+
+#Should implement the final version of mining alhorithm
 #Pseudo Code
-#Note chest
-#Check every slot of chest
-#   If you have same item in your inv
-#       Transfer it
 
-# Should implement torch planting as well
+#   WHILE lava/water is NOT above/to the side of target block OR air not in front
+#   Dig front
+#   If
+#   Air nearby(not from dig sides)
+#   Or if Lava/water below
+#       Put a block (not a wanted one) there
+#
 
-#Should implement nearby block checking for ore  and for dangers
-# ex narrate <player.inventory.contains.material[gold_ore]>
-# <inventory.slot[1]>
+# Should implement torch planting
+
+
+
+
+
+
