@@ -18,7 +18,7 @@ Mine6Blocks:
     type: world
     events:
         on player right clicks:
-        - if <player.item_in_hand.material.name> == wheat:
+        - if <player.item_in_hand.material.name> == diamonds:
             - define NPC <server.spawned_npcs_flagged[miner].get[1]>
 
             - note <player.cursor_on> as:target
@@ -36,19 +36,28 @@ Mine6Blocks:
             - note <location[target].sub[0,-1,0]> as:target
             - run MiningSubScript def:<[NPC]>
             - wait 1.1s
-
+#NPC moves towards target block and simulates mining it, while receiving drops to its inventory
+#Only starts mining after coming close
 MiningSubScript:
     type: task
     script:
-        - walk <location[target]> <[1]>
-        - wait 0.5s
-        - animate <[1]> ARM_SWING
-        - look <[1]> <location[target]>
+        - define NPC <[1]>
+
+        - walk <location[target]> <[NPC]>
+        - narrate <[NPC].location.distance[<location[target]>]>
+        - while <[NPC].location.distance[<location[target]>]> > 3.5:
+            - narrate <[NPC].location.distance[<location[target]>]>
+            - look <[NPC]> <location[target]>
+            - wait 0.5s
+        - look <[NPC]> <location[target]>
+        - wait 0.3s
+        - animate <[NPC]> ARM_SWING
+        - look <[NPC]> <location[target]>
         - blockcrack <location[target]> progress:<util.random.int[4].to[7]>
         - wait 0.5s
-        - look <[1]> <location[target]>
-        - animate <[1]> ARM_SWING
-        - give <location[target].drops.get[1]> to:<[1].inventory>
+        - look <[NPC]> <location[target]>
+        - animate <[NPC]> ARM_SWING
+        - give <location[target].drops.get[1]> to:<[NPC].inventory>
         - modifyblock <location[target]> air
         - blockcrack <location[target]> progress:0
 
@@ -93,9 +102,29 @@ Narrate:
                 - take <[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> from:<[NPC].inventory>
                 - narrate <[item]>
                 - wait 1s
+#Notation of direction doesnt work, worked before trying to define/note it. Need more iq to solve this
+UpdatedDig:
+    type: world
+    events:
+        on player right clicks:
+        - if <player.item_in_hand.material.name> == wheat:
+            - define NPC <server.spawned_npcs_flagged[miner].get[1]>
+            - note <player.eye_location.precise_impact_normal> as:direction
+            - note <player.cursor_on> as:target
+            - ~run MiningSubScript def:<[NPC]>
+            - repeat 2:
+                - narrate <location[direction]>
+                - note <location[target].add[0,1,0]> as:target
+                - ~run MiningSubScript def:<[NPC]>
+                - note <location[target].sub[location[direction]].sub[0,1,0]> as:target
+                - ~run MiningSubScript def:<[NPC]>
+            
+            - note <location[target].add[0,1,0]> as:target
+            - ~run MiningSubScript def:<[NPC]>
 
 
-
+            - if <player.cursor_on.relative[1,0,0].material.name> == water:
+                - narrate "water check successful"
 
 #Should implement the final version of mining alhorithm
 #Pseudo Code
@@ -107,11 +136,10 @@ Narrate:
 #   Or if Lava/water below
 #       Put a block (not a wanted one) there
 #
-
+# Should implement distance checks
 # Should implement torch planting
 
-
-
+#Flood, ellipsoid function will help
 
 
 
