@@ -3,7 +3,10 @@ SpawnNPC:
     type: world
     events:
         on player right clicks with bread:
+            - despawn <player.target>
             - create player Mr.Slave <player.location>
+            - flag <player.target> miner
+            
 
 #Opens target entity's inventory
 ChecksTargetsInventory:
@@ -12,72 +15,27 @@ ChecksTargetsInventory:
         on player right clicks with apple:
             - inventory open d:<player.target.inventory>
 
-#NPC mines 6 blocks in front and receives them to its inventory
-Mine6Blocks:
-    type: world
-    events:
-        on player right clicks with diamonds:
-            - define NPC <server.spawned_npcs_flagged[miner].get[1]>
-
-            - note <player.cursor_on> as:target
-            - run MiningSubScript def:<[NPC]>
-            - wait 1.1s
-
-            - repeat 2:
-                - note <location[target].sub[0,-1,0]> as:target
-                - run MiningSubScript def:<[NPC]>
-                - wait 1.1s
-                - note <location[target].sub[1,1,0]> as:target
-                - run MiningSubScript def:<[NPC]>
-                - wait 1.1s
-
-            - note <location[target].sub[0,-1,0]> as:target
-            - run MiningSubScript def:<[NPC]>
-            - wait 1.1s
-
-#NPC moves towards target block and simulates mining it, while receiving drops to its inventory
-#Only starts mining after coming close
-MiningSubScript:
-    type: task
-    script:
-        - define NPC <[1]>
-
-        - walk <[NPC].flag[CurrentBlockMined]> <[NPC]>
-        - narrate <[NPC].location.distance[<[NPC].flag[CurrentBlockMined]>]>
-        - while <[NPC].location.distance[<[NPC].flag[CurrentBlockMined]>]> > 3.5:
-            - narrate <[NPC].location.distance[<[NPC].flag[CurrentBlockMined]>]>
-            - look <[NPC]> <[NPC].flag[CurrentBlockMined]>
-            - wait 0.5s
-        - look <[NPC]> <[NPC].flag[CurrentBlockMined]>
-        - wait 0.3s
-        - animate <[NPC]> ARM_SWING
-        - look <[NPC]> <[NPC].flag[CurrentBlockMined]>
-        - blockcrack <[NPC].flag[CurrentBlockMined]> progress:<util.random.int[4].to[7]>
-        - wait 0.5s
-        - look <[NPC]> <[NPC].flag[CurrentBlockMined]>
-        - animate <[NPC]> ARM_SWING
-        - give <location[target].drops.get[1]> to:<[NPC].inventory>
-        - modifyblock <[NPC].flag[CurrentBlockMined]> air
-        - blockcrack <[NPC].flag[CurrentBlockMined]> progress:0
 
 #Carrot tells NPC to walk to a clicked location
 NPCWalk:
     type: world
     events:
         on player right clicks with carrot:
-            - walk <player.cursor_on> <server.spawned_npcs_flagged[miner].get[1]>
+            - walk <player.cursor_on.above> <server.spawned_npcs_flagged[miner].get[1]>
 
 #A script, which returns assigns a chest to an NPC or tells the NPC to return there
+# <[NPC].location.find.blocks[chest].within[10].get[1]> works differently than <player.cursor_on>
+# This causes issues.....
 NpcChest:
     type: world
     events:
         on player right clicks with chest:
             - define NPC <server.spawned_npcs_flagged[miner].get[1]>
             - if  !<[NPC].has_flag[ChestLocation]>:
-                - note <[NPC].location.find.blocks[chest].within[10].get[1]> as:Chest
                 - flag <[NPC]> ChestLocation:<[NPC].location.find.blocks[chest].within[10].get[1]>
             - else:
-                - walk <[NPC]> <[NPC].flag[ChestLocation]>
+                - narrate <[NPC].flag[ChestLocation]>
+                - walk <[NPC].flag[ChestLocation]> <[NPC]>
                 - animatechest <[NPC].flag[ChestLocation]>
                 - look <[NPC]> <[NPC].flag[ChestLocation]>
                 - wait 3s
@@ -99,7 +57,7 @@ Narrate:
                 - narrate <[item]>
                 - wait 1s
 
-
+#.as_location returns a location from an element type
 UpdatedDig:
     type: world
     events:
@@ -107,48 +65,100 @@ UpdatedDig:
             - define NPC <server.spawned_npcs_flagged[miner].get[1]>
             - flag <[NPC]> Direction:<player.eye_location.precise_impact_normal>
             - flag <[NPC]> CurrentBlockMined:<player.cursor_on>
-            - define temp <[NPC].flag[CurrentBlockMined]>
-            - narrate <[temp]>
-            - flag <[NPC]> CurrentBlockMined:<location[temp]>
-            - narrate <[NPC].flag[CurrentBlockMined]>
-#{            - ~run MiningSubScript def:<[NPC]>
+            - flag <[NPC]> Status:Mine
+
+            - repeat 10:
+
+                - run CheckingSubScript def:<[NPC]>
+                - if <[NPC].flag[Status]> == Stop:
+                    - repeat stop
+                - ~run MiningSubScript def:<[NPC]>
+                - flag <[NPC]> CurrentBlockMined:<[NPC].flag[CurrentBlockMined].as_location.below>
+
+                - run CheckingSubScript def:<[NPC]>
+                - if <[NPC].flag[Status]> == Stop:
+                    - repeat stop
+                - ~run MiningSubScript def:<[NPC]>
+                - flag <[NPC]> CurrentBlockMined:<[NPC].flag[CurrentBlockMined].as_location.sub[<[NPC].flag[Direction].as_location>].above>
+
+            - narrate "I'm done sir"
+
+#{            - walk <[NPC]> <[NPC].flag[ChestLocation]>
+
+#NPC moves towards target block and simulates mining it, while receiving drops to its inventory
+#Only starts mining after coming close
+#Should check for distance and stop
+MiningSubScript:
+    type: task
+    script:
+        - define NPC <[1]>
+        - if <[NPC].location.distance[<[NPC].flag[CurrentBlockMined]>]> > 3.5:
+            - walk <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location>]> <[NPC]>
+        - run DistanceCheck
+        - while <[NPC].location.distance[<[NPC].flag[CurrentBlockMined]>]> > 3.5:
+            - wait 1s
+        - look <[NPC]> <[NPC].flag[CurrentBlockMined]> duration:1s
+        - wait 0.3s
+#{        - animate <[NPC]> ARM_SWING
+#{        - look <[NPC]> <[NPC].flag[CurrentBlockMined]>
+        - blockcrack <[NPC].flag[CurrentBlockMined]> progress:<util.random.int[4].to[7]>
+        - wait 0.5s
+#{        - look <[NPC]> <[NPC].flag[CurrentBlockMined]>
+#{        - animate <[NPC]> ARM_SWING
+#{        - give <[NPC].flag[CurrentBlockMined].as_location.drops.get[1]> to:<[NPC].inventory>
+        - modifyblock <[NPC].flag[CurrentBlockMined]> air
+        - blockcrack <[NPC].flag[CurrentBlockMined]> progress:0
+
+#Checks whether there is danger while mining and changes status of NPC if necessary
+#Doesnt work
+CheckingSubScript:
+    type: task
+    script:
+        - define NPC <[1]>
+        - narrate <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location.rotate_around_y[1.5708].round_to_precision[1]>]>
+        - if <[NPC].flag[CurrentBlockMined].as_location.sub[<[NPC].flag[Direction].as_location>].material.name> == air: 
+            - flag <[NPC]> Status:Stop
+            - stop
+        - else if <[NPC].flag[CurrentBlockMined].as_location.sub[<[NPC].flag[Direction].as_location>].material.name> == lava:
+            - flag <[NPC]> Status:Stop
+            - stop
+        - else if <[NPC].flag[CurrentBlockMined].as_location.sub[<[NPC].flag[Direction].as_location>].material.name> == water:
+            - flag <[NPC]> Status:Stop
+            - stop
+        - else if <[NPC].flag[CurrentBlockMined].as_location.above.material.name> == lava:
+            - flag <[NPC]> Status:Stop
+            - stop
+        - else if <[NPC].flag[CurrentBlockMined].as_location.above.material.name> == water:
+            - flag <[NPC]> Status:Stop
+            - stop
+        - else if <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location.rotate_around_y[1.5708].round_to_precision[1]>].material.name> == lava:
+            - flag <[NPC]> Status:Stop
+            - stop
+        - else if <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location.rotate_around_y[1.5708].round_to_precision[1]>].material.name> == water:
+            - flag <[NPC]> Status:Stop
+            - stop
+        - else if <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location.rotate_around_y[-1.5708].round_to_precision[1]>].material.name> == lava:
+            - flag <[NPC]> Status:Stop
+            - stop
+        - else if <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location.rotate_around_y[-1.5708].round_to_precision[1]>].material.name> == water:
+            - flag <[NPC]> Status:Stop
+            - stop
+
+DistanceCheck:
+    type: task
+    script:
+        - define NPC <[1]>
+        - wait 10s
+        - if <[NPC].location.distance[<[NPC].flag[CurrentBlockMined]>]> > 3.5:
+            - flag <[NPC]> Status:Stop
 
 
 
-            - if <player.cursor_on.relative[1,0,0].material.name> == water:
-                - narrate "water check successful"
+#Autorange - range at which npc teleports
+#I should look into queues, probably movement issues stem from there!!!
+#Should implement torch planting
 
-TEST:
-    type: world
-    events:
-        on player right clicks with emerald:
-            - narrate <player.target.id>
-            - note <player.target.location> as:NPCs<player.target.id>Direction
-            - narrate <location[9]>
-
-TEST2:
-    type: world
-    events:
-        on player right clicks with bucket:
-            - teleport <player> <location[NPCs9Direction]>
-
-#{            - narrate <player.eye_location.precise_impact_normal>
-#{           - note remove as:direction
-
-#Should implement the final version of mining alhorithm
-#Pseudo Code
-
-#   WHILE lava/water is NOT above/to the side of target block OR air not in front
-#   Dig front
-#   If
-#   Air nearby(not from dig sides)
-#   Or if Lava/water below
-#       Put a block (not a wanted one) there
-#
-# Should implement distance checks
-# Should implement torch planting
-
-#Flood, ellipsoid function will help
+#Flood, ellipsoid function might help
 
 
 
