@@ -57,17 +57,21 @@ Narrate:
                 - narrate <[item]>
                 - wait 1s
 
-#.as_location returns a location from an element type
+
 UpdatedDig:
     type: world
     events:
         on player right clicks with wheat:
+#Stops the script if the direction is vertical
+            - if <player.eye_location.precise_impact_normal.x> == 0 && <player.eye_location.precise_impact_normal.z> == 0:
+                - stop
+
             - define NPC <server.spawned_npcs_flagged[miner].get[1]>
             - flag <[NPC]> Direction:<player.eye_location.precise_impact_normal>
             - flag <[NPC]> CurrentBlockMined:<player.cursor_on>
             - flag <[NPC]> Status:Mine
 
-            - repeat 10:
+            - repeat 5:
 
                 - run CheckingSubScript def:<[NPC]>
                 - if <[NPC].flag[Status]> == Stop:
@@ -83,11 +87,11 @@ UpdatedDig:
 
             - narrate "I'm done sir"
 
-#{            - walk <[NPC]> <[NPC].flag[ChestLocation]>
+
 
 #NPC moves towards target block and simulates mining it, while receiving drops to its inventory
 #Only starts mining after coming close
-#Should check for distance and stop
+#{ - look bugs out NPCs movement afterwards
 MiningSubScript:
     type: task
     script:
@@ -96,51 +100,39 @@ MiningSubScript:
             - walk <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location>]> <[NPC]>
         - run DistanceCheck
         - while <[NPC].location.distance[<[NPC].flag[CurrentBlockMined]>]> > 3.5:
-            - wait 1s
-        - look <[NPC]> <[NPC].flag[CurrentBlockMined]> duration:1s
+            - wait 0.5s
         - wait 0.3s
-#{        - animate <[NPC]> ARM_SWING
-#{        - look <[NPC]> <[NPC].flag[CurrentBlockMined]>
+        - animate <[NPC]> ARM_SWING
         - blockcrack <[NPC].flag[CurrentBlockMined]> progress:<util.random.int[4].to[7]>
         - wait 0.5s
-#{        - look <[NPC]> <[NPC].flag[CurrentBlockMined]>
-#{        - animate <[NPC]> ARM_SWING
-#{        - give <[NPC].flag[CurrentBlockMined].as_location.drops.get[1]> to:<[NPC].inventory>
+        - animate <[NPC]> ARM_SWING
+        - give <[NPC].flag[CurrentBlockMined].as_location.drops.get[1]> to:<[NPC].inventory>
         - modifyblock <[NPC].flag[CurrentBlockMined]> air
         - blockcrack <[NPC].flag[CurrentBlockMined]> progress:0
 
 #Checks whether there is danger while mining and changes status of NPC if necessary
-#Doesnt work
 CheckingSubScript:
     type: task
     script:
         - define NPC <[1]>
-        - narrate <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location.rotate_around_y[1.5708].round_to_precision[1]>]>
-        - if <[NPC].flag[CurrentBlockMined].as_location.sub[<[NPC].flag[Direction].as_location>].material.name> == air: 
+        - if <[NPC].flag[CurrentBlockMined].as_location.sub[<[NPC].flag[Direction].as_location>].material.is_transparent>:
+            - narrate 1
             - flag <[NPC]> Status:Stop
             - stop
-        - else if <[NPC].flag[CurrentBlockMined].as_location.sub[<[NPC].flag[Direction].as_location>].material.name> == lava:
+        - else if <[NPC].flag[CurrentBlockMined].as_location.sub[<[NPC].flag[Direction].as_location>].is_liquid>:
+            - narrate 2
             - flag <[NPC]> Status:Stop
             - stop
-        - else if <[NPC].flag[CurrentBlockMined].as_location.sub[<[NPC].flag[Direction].as_location>].material.name> == water:
+        - else if <[NPC].flag[CurrentBlockMined].as_location.above.is_liquid>:
+            - narrate 3
             - flag <[NPC]> Status:Stop
             - stop
-        - else if <[NPC].flag[CurrentBlockMined].as_location.above.material.name> == lava:
+        - else if <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location.rotate_around_y[1.5708].round_to_precision[1]>].is_liquid>:
+            - narrate 4
             - flag <[NPC]> Status:Stop
             - stop
-        - else if <[NPC].flag[CurrentBlockMined].as_location.above.material.name> == water:
-            - flag <[NPC]> Status:Stop
-            - stop
-        - else if <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location.rotate_around_y[1.5708].round_to_precision[1]>].material.name> == lava:
-            - flag <[NPC]> Status:Stop
-            - stop
-        - else if <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location.rotate_around_y[1.5708].round_to_precision[1]>].material.name> == water:
-            - flag <[NPC]> Status:Stop
-            - stop
-        - else if <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location.rotate_around_y[-1.5708].round_to_precision[1]>].material.name> == lava:
-            - flag <[NPC]> Status:Stop
-            - stop
-        - else if <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location.rotate_around_y[-1.5708].round_to_precision[1]>].material.name> == water:
+        - else if <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location.rotate_around_y[-1.5708].round_to_precision[1]>].is_liquid>:
+            - narrate 5
             - flag <[NPC]> Status:Stop
             - stop
 
@@ -150,12 +142,12 @@ DistanceCheck:
         - define NPC <[1]>
         - wait 10s
         - if <[NPC].location.distance[<[NPC].flag[CurrentBlockMined]>]> > 3.5:
+            - narrate distance
             - flag <[NPC]> Status:Stop
 
 
 
 #Autorange - range at which npc teleports
-#I should look into queues, probably movement issues stem from there!!!
 #Should implement torch planting
 
 #Flood, ellipsoid function might help
