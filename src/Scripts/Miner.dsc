@@ -1,14 +1,14 @@
-#Diamond summons an NPC named Mr. Slave
+#Bread summons an NPC named Mr. Slave
 SpawnNPC:
     type: world
     events:
         on player right clicks with bread:
             - despawn <player.target>
             - create player Mr.Slave <player.location>
-            - flag <player.target> miner
+            - flag <player.target> role:miner
             
 
-#Opens target entity's inventory
+#Apple opens target entity's inventory
 ChecksTargetsInventory:
     type: world
     events:
@@ -24,8 +24,6 @@ NPCWalk:
             - walk <player.cursor_on.above> <server.spawned_npcs_flagged[miner].get[1]>
 
 #A script, which returns assigns a chest to an NPC or tells the NPC to return there
-# <[NPC].location.find.blocks[chest].within[10].get[1]> works differently than <player.cursor_on>
-# This causes issues.....
 NpcChest:
     type: world
     events:
@@ -41,10 +39,8 @@ NpcChest:
                 - wait 3s
                 - animatechest <[NPC].flag[ChestLocation]> close
 
-
-
 #Deposits all items in a.yml config file to a chest
-Narrate:
+Deposit:
     type: world
     events:
         on player right clicks with cooked_beef:
@@ -57,7 +53,7 @@ Narrate:
                 - narrate <[item]>
                 - wait 1s
 
-
+#Digs forward until it encounters an obstacle
 UpdatedDig:
     type: world
     events:
@@ -91,7 +87,6 @@ UpdatedDig:
 
 #NPC moves towards target block and simulates mining it, while receiving drops to its inventory
 #Only starts mining after coming close
-#{ - look bugs out NPCs movement afterwards
 MiningSubScript:
     type: task
     script:
@@ -136,6 +131,7 @@ CheckingSubScript:
             - flag <[NPC]> Status:Stop
             - stop
 
+#Checks whether NPC is far away from it's goal and changes it's status if necessary
 DistanceCheck:
     type: task
     script:
@@ -145,12 +141,31 @@ DistanceCheck:
             - narrate distance
             - flag <[NPC]> Status:Stop
 
+#The events item should be able to perform
+#Spawn NPC                  Left Click
+#Set NPC working direction  Right Click
+#Set NPC Chest              Right Click
+#Access NPCs inventory      Left/Right?
 
+OnWhip:
+    type: world
+    events:
+        on player right clicks with Whip:
+        - narrate <player.target>
+        - if <player.target> == "Player.target":
+            - narrate "Target not found"
+        - else:
+            - inventory open d:<player.target.inventory>
+            - narrate "Target located"
 
-#Autorange - range at which npc teleports
-#Should implement torch planting
-
-#Flood, ellipsoid function might help
-
+#Item which spawns and (is going to) control NPCs
+Whip:
+    type: item
+    material: iron_ore
+    display name: Whip
+    lore:
+        - "An item Rolandas the Great created to rule the universe"
+        - "An item left behind by the gods who have created our universe "
+    color: <Whip.color.with_red[255]>
 
 
