@@ -1,4 +1,4 @@
---- #Items wanted
+--- #Items which NPC is going to deposit into chests. Other items stay in its inventory.
 items:
   - diamond
   - emerald_ore

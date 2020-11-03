@@ -98,7 +98,7 @@ DistanceCheck:
     script:
         - define NPC <[1]>
         - wait 10s
-        - if <[NPC].location.distance[<[NPC].flag[CurrentBlockMined]>]> > 3.5:
+        - if <[NPC].location.distance[<[NPC].flag[CurrentBlockMined].as_location>]> > 3.5:
             - narrate "NPC too far from mining block"
             - flag <[NPC]> Status:Stop
 
@@ -120,7 +120,9 @@ OnLeftClickWhip:
                 - create player Mr.Slave <player.location>
                 - flag <player.target> miner
                 - flag <player.target> Role:Undefined
+                - flag <player.target> Owner:<player>
                 - flag <player> Selected:<player.target>
+
 
 
 #Should stand up before giving commands
@@ -133,7 +135,7 @@ OnRightClickWhip:
 
             - if <player.location.distance[<[NPC].location>]> <= 25:
 
-                - if <player.cursor_on.material.name> == chest:
+                - if <player.cursor_on.has_inventory> || <player.cursor_on.material.name> == ender_chest:
 
                     - if  !<[NPC].has_flag[ChestLocation]> || !<[NPC].flag[ChestLocation].as_location.has_inventory>:
                         - flag <[NPC]> ChestLocation:<player.cursor_on>
@@ -171,32 +173,47 @@ UpdatedDigTask:
         - repeat 5:
 
             - run CheckingSubScript def:<[NPC]>
-            - if <[NPC].flag[Status]> == Stop:
+            - if <[NPC].flag[Status]> != Mine:
                     - repeat stop
             - ~run MiningSubScript def:<[NPC]>
             - flag <[NPC]> CurrentBlockMined:<[NPC].flag[CurrentBlockMined].as_location.below>
 
             - run CheckingSubScript def:<[NPC]>
-            - if <[NPC].flag[Status]> == Stop:
+            - if <[NPC].flag[Status]> != Mine:
                     - repeat stop
             - ~run MiningSubScript def:<[NPC]>
             - flag <[NPC]> CurrentBlockMined:<[NPC].flag[CurrentBlockMined].as_location.sub[<[NPC].flag[Direction].as_location>].above>
+            
         - ~walk <[NPC]> <[NPC].flag[ChestLocation]> auto_range
         - run deposit def:<[NPC]>
         - narrate "I'm done sir"
 
+#Should implement check for full inventory
 #Deposits all items in a.yml config file to a chest
 Deposit:
     type: task
     script:
         - define NPC <[1]>
         - define Chest <[NPC].flag[ChestLocation]>
-        - if !<[NPC].flag[ChestLocation].as_location.has_inventory>:
+        - if !<[NPC].flag[ChestLocation].as_location.has_inventory> && <[NPC].flag[ChestLocation].as_location.material.name> != ender_chest:
             - narrate "I don't have a linked chest :(   My current location is - <[NPC].location.round.simple>"
             - stop
+        - else if <[NPC].flag[ChestLocation].as_location.has_inventory>:
+            - define TargetInventory <[NPC].flag[ChestLocation].as_location.inventory>
+        - else if <[NPC].flag[ChestLocation].as_location.material.name> == ender_chest:
+            - define TargetInventory <[NPC].flag[Owner].as_player.enderchest>
+
         - foreach <yaml[MinionConfig].read[items]> as:item:
-            - narrate <[NPC].inventory.quantity.material[<[item]>]>
-            - give <[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> to:<[NPC].flag[ChestLocation].as_location.inventory>
+            - define Count <[TargetInventory].quantity.material[<[item]>]>
+            - give <[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> to:<[TargetInventory]>
+#Check if TargetInventory can fit items
+            - if <[TargetInventory].quantity.material[<[item]>]>-<[NPC].inventory.quantity.material[<[item]>]> != <[Count]>:
+                - narrate "My chest's inventory is full :( My current location is - <[NPC].location.round.simple>"
+                - narrate <[TargetInventory].quantity.material[<[item]>]>-<[NPC].inventory.quantity.material[<[item]>]>
+                - narrate <[Count]>
+                - flag <[NPC]> Status:Wait
+                - take <[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> from:<[NPC].inventory>
+                - stop
             - take <[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> from:<[NPC].inventory>
             - narrate <[item]>
             - wait 1s
@@ -204,7 +221,7 @@ Deposit:
 #Item which spawns and (is going to) control NPCs
 Whip:
     type: item
-    material: wooden_sword
+    material: book--
     display name: Whip
     lore:
         - "An item Rolandas the Great created to rule the universe"
