@@ -10,10 +10,7 @@ NPCWalk:
     type: world
     events:
         on player right clicks with carrot:
-            - walk <player.cursor_on.above> <player.flag[Selected].as_npc>
-
-
-
+            - walk <player.cursor_on.above> <player.flag[Selected].as_npc> auto_range
 
 MiningTask:
     type: task
@@ -27,15 +24,15 @@ MiningTask:
         - flag <[NPC]> CurrentBlockMined:<player.cursor_on>
         - flag <[NPC]> Status:Mine
 
-        - repeat 5:
+        - repeat 10000:
 
-            - run CheckingSubScript def:<[NPC]>
+            - run CheckingSubScript def:<[NPC]>|Top
             - if <[NPC].flag[Status]> != Mine:
                     - repeat stop
             - ~run MiningSubScript def:<[NPC]>
             - flag <[NPC]> CurrentBlockMined:<[NPC].flag[CurrentBlockMined].as_location.below>
 
-            - run CheckingSubScript def:<[NPC]>
+            - run CheckingSubScript def:<[NPC]>|Bottom
             - if <[NPC].flag[Status]> != Mine:
                     - repeat stop
             - ~run MiningSubScript def:<[NPC]>
@@ -47,7 +44,6 @@ MiningTask:
             - flag <[NPC]> status:Stop
             - stop
         - run deposit def:<[NPC]>
-        - narrate "I'm done sir"
 
 #NPC moves towards a single target block and simulates mining it, while receiving drops to its inventory
 MiningSubScript:
@@ -57,17 +53,17 @@ MiningSubScript:
         - define CurrentBlockMined <[NPC].flag[CurrentBlockMined]>
 
         - if <[NPC].location.distance[<[CurrentBlockMined]>]> > 3.5:
-            - walk <[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location>]> <[NPC]>
+            - walk <[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location>]> <[NPC]> auto_range
         - run DistanceCheck def:<[NPC]>|<[NPC].flag[CurrentBlockMined].as_location>
         - while <[NPC].location.distance[<[CurrentBlockMined]>]> > 3.5:
             - wait 0.5s
             - if <[NPC].flag[Status]> == Stop:
                 - narrate "Can't reach a block I'm trying to mine :( My current location is - <[NPC].location.round.simple>"
                 - stop
-        - wait 0.3s
+#{        - wait 0.3s
         - animate <[NPC]> ARM_SWING
         - blockcrack <[CurrentBlockMined]> progress:<util.random.int[4].to[7]>
-        - wait 0.5s
+#{        - wait 0.5s
         - animate <[NPC]> ARM_SWING
         - give <[CurrentBlockMined].as_location.drops.get[1]> to:<[NPC].inventory>
         - modifyblock <[CurrentBlockMined]> air
@@ -79,23 +75,43 @@ CheckingSubScript:
     script:
         - define NPC <[1]>
         - if <[NPC].flag[CurrentBlockMined].as_location.sub[<[NPC].flag[Direction].as_location>].material.is_transparent>:
-            - narrate "Obstacle #1 detected, stopping mining"
+            - narrate "Air in front detected, stopping mining"
             - flag <[NPC]> Status:Stop
             - stop
         - else if <[NPC].flag[CurrentBlockMined].as_location.sub[<[NPC].flag[Direction].as_location>].is_liquid>:
-            - narrate "Obstacle #2 detected, stopping mining"
+            - narrate "Lava/Water in front detected, stopping mining"
             - flag <[NPC]> Status:Stop
             - stop
-        - else if <[NPC].flag[CurrentBlockMined].as_location.above.is_liquid>:
-            - narrate "Obstacle #3 detected, stopping mining"
+        - else if <[NPC].flag[CurrentBlockMined].as_location.above.material.is_transparent> && <[2]> == Top:
+            - narrate "Air above detected, stopping mining"
+            - flag <[NPC]> Status:Stop
+            - stop
+        - else if <[NPC].flag[CurrentBlockMined].as_location.above.is_liquid> && <[2]> == Top:
+            - narrate "Lava/Water above detected, stopping mining"
+            - flag <[NPC]> Status:Stop
+            - stop
+        - else if <[NPC].flag[CurrentBlockMined].as_location.below.material.is_transparent> && <[2]> == Bottom:
+            - narrate "Air below detected, stopping mining"
+            - flag <[NPC]> Status:Stop
+            - stop
+        - else if <[NPC].flag[CurrentBlockMined].as_location.below.is_liquid> && <[2]> == Bottom:
+            - narrate "Lava/Water below detected, stopping mining"
+            - flag <[NPC]> Status:Stop
+            - stop
+        - else if <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location.rotate_around_y[1.5708].round_to_precision[1]>].material.is_transparent>:
+            - narrate "Right-side Air detected, stopping mining"
             - flag <[NPC]> Status:Stop
             - stop
         - else if <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location.rotate_around_y[1.5708].round_to_precision[1]>].is_liquid>:
-            - narrate "Obstacle #4 detected, stopping mining"
+            - narrate "Right-side Lava/Water detected, stopping mining"
+            - flag <[NPC]> Status:Stop
+            - stop
+        - else if <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location.rotate_around_y[-1.5708].round_to_precision[1]>].material.is_transparent>:
+            - narrate "Left-side Air detected, stopping mining"
             - flag <[NPC]> Status:Stop
             - stop
         - else if <[NPC].flag[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location.rotate_around_y[-1.5708].round_to_precision[1]>].is_liquid>:
-            - narrate "Obstacle #5 detected, stopping mining"
+            - narrate "Left-side Lava/Water detected, stopping mining"
             - flag <[NPC]> Status:Stop
             - stop
 
@@ -105,9 +121,7 @@ DistanceCheck:
     script:
         - define NPC <[1]>
         - define CurrentBlockMined <[2]>
-        - narrate <[NPC].location.distance[<[CurrentBlockMined]>]>
         - wait 20s
-        - narrate <[NPC].location.distance[<[CurrentBlockMined]>]>
         - if <[NPC].location.distance[<[CurrentBlockMined]>]> > 3.5 && <[CurrentBlockMined].material.name> != air:
             - flag <[NPC]> Status:Stop
 
@@ -124,7 +138,7 @@ Deposit:
         - else if <[Chest].as_location.has_inventory>:
             - define TargetInventory <[Chest].as_location.inventory>
         - else if <[Chest].as_location.material.name> == ender_chest:
-            - define TargetInventory <[NPC].flag[Owner].as_player.enderchest>
+            - define TargetInventory <[NPC].Owner.as_player.enderchest>
 
         - foreach <yaml[MinionConfig].read[items]> as:item:
             - define Count <[TargetInventory].quantity.material[<[item]>]>
