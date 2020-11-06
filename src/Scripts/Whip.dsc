@@ -23,7 +23,6 @@ OnLeftClickWhip:
                 - adjust <player.target> Teleport_on_Stuck:false
                 - vulnerable npc:<player.target>
 
-                
 
 #If aimed at NPC, opens its inventory
 #Else if aimed at chest, links it with currently selected NPC
