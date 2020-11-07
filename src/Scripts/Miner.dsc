@@ -12,27 +12,45 @@ MiningTask:
         - flag <[NPC]> Status:Mine
 
 #{ FLAGINT PRADINY BLOKA        - flag <[NPC]> 
-        - repeat 4:
+        - repeat 2:
 
-            - run CheckingSubScript def:<[NPC]>|Top
-            - if <[NPC].flag[Status]> != Mine:
-                    - repeat stop
-            - ~run MiningSubScript def:<[NPC]>
-            - flag <[NPC]> CurrentBlockMined:<[NPC].flag[CurrentBlockMined].as_location.below>
+            - run SetFlag def:<[NPC]>
+            - flag <[NPC]> CurrentBlockMined:<[NPC].flag[StripStartingPosition]>
 
-            - run CheckingSubScript def:<[NPC]>|Bottom
-            - if <[NPC].flag[Status]> != Mine:
-                    - repeat stop
-            - ~run MiningSubScript def:<[NPC]>
-            - flag <[NPC]> CurrentBlockMined:<[NPC].flag[CurrentBlockMined].as_location.sub[<[NPC].flag[Direction].as_location>].above>
+            - repeat 2:
+                - run CheckingSubScript def:<[NPC]>|Top
+                - if <[NPC].flag[Status]> != Mine:
+                        - repeat stop
+                - ~run MiningSubScript def:<[NPC]>
+                - flag <[NPC]> CurrentBlockMined:<[NPC].flag[CurrentBlockMined].as_location.below>
 
-        - ~walk <[NPC]> <[NPC].flag[ChestLocation]> auto_range
-        - if <[NPC].location.distance[<[NPC].flag[ChestLocation].as_location>]> > 3.5:
-            - narrate "I'm stuck, can't reach linked chest :( My current location is - <[NPC].location.round.simple>"
-            - flag <[NPC]> status:Stop
-            - stop
-        - run deposit def:<[NPC]>
+                - run CheckingSubScript def:<[NPC]>|Bottom
+                - if <[NPC].flag[Status]> != Mine:
+                        - repeat stop
+                - ~run MiningSubScript def:<[NPC]>
+                - flag <[NPC]> CurrentBlockMined:<[NPC].flag[CurrentBlockMined].as_location.sub[<[NPC].flag[Direction].as_location>].above>
 
+            - ~walk <[NPC]> <[NPC].flag[ChestLocation]> auto_range
+            - if <[NPC].location.distance[<[NPC].flag[ChestLocation].as_location>]> > 3.5:
+                - narrate "I'm stuck, can't reach linked chest :( My current location is - <[NPC].location.round.simple>"
+                - flag <[NPC]> status:Stop
+                - stop
+            - run deposit def:<[NPC]>
+        - flag <[NPC]> StripStartingPosition:!
+
+#Flags position from which the NPC will start mining a new strip
+SetFlag:
+    type: task
+    script:
+        - define NPC <[1]>
+        - if <[NPC].has_flag[StripStartingPosition]>:
+            - repeat 2:
+                - flag <[NPC]> StripStartingPosition:<[NPC].flag[StripStartingPosition].as_location.sub[<[NPC].flag[Direction].as_location.rotate_around_y[-1.5708].round_to_precision[1]>]>
+            - modifyblock <[NPC].flag[StripStartingPosition]> dirt
+            - narrate "Setting 2nd pos"
+        - else:
+            - flag <[NPC]> StripStartingPosition:<player.cursor_on>
+            - narrate "Setting 1st pos"
 
 
 #NPC moves towards a single target block and simulates mining it, while receiving drops to its inventory

@@ -12,6 +12,12 @@ NPCWalk:
         on player right clicks with carrot:
             - walk <player.cursor_on.above> <player.flag[Selected].as_npc> auto_range
 
+NPCRemove:
+    type: world
+    events:
+        on player right clicks with diamond_sword:
+            - remove <player.target>
+
 #Deposits all items in a.yml config file to a chest
 Deposit:
     type: task
@@ -34,7 +40,7 @@ Deposit:
             - if <[TargetInventory].quantity.material[<[item]>].sub[<[NPC].inventory.quantity.material[<[item]>]>]> != <[Count]>:
                 - narrate "My chest's inventory is full :( My current location is - <[NPC].location.round.simple>"
                 - flag <[NPC]> Status:Wait
-                - take <[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> from:<[NPC].inventory>
+                - take material:<[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> from:<[NPC].inventory>
                 - stop
-            - take <[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> from:<[NPC].inventory>
+            - take material:<[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> from:<[NPC].inventory>
             - wait 0.5s
