@@ -2,9 +2,12 @@
 items:
   - diamond
   - emerald_ore
-  - lapis_ore
+  - lapis_lazuli
   - redstone
   - gold_ore
   - iron_ore
-  - coal_ore
+  - coal
   - gold_nugget
+
+--- #Distance between strips when mining
+StripMineDistance: 2

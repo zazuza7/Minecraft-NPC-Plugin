@@ -9,7 +9,7 @@ OnServerStart:
 NPCWalk:
     type: world
     events:
-        on player right clicks with carrot:
+        on player right clicks with bread:
             - walk <player.cursor_on.above> <player.flag[Selected].as_npc> auto_range
 
 NPCRemove:
@@ -17,6 +17,55 @@ NPCRemove:
     events:
         on player right clicks with diamond_sword:
             - remove <player.target>
+
+NPCLoadYaml:
+    type: world
+    events:
+        on player right clicks with diamond_pickaxe:
+            - yaml load:minion_plugin_config.yml id:MinionConfig
+            - repeat <yaml[MinionConfig].read[StripMineDistance]>:
+                - narrate <[value]>
+
+
+GoBackToChestCarrot:
+    type: world
+    events:
+        on player right clicks with carrot:
+        - define NPC <player.flag[Selected].as_npc>
+        - define Target <player.cursor_on>
+        - narrate "Go here go there"
+        - narrate <[NPC].location.distance[<[Target]>]>
+        - while <[NPC].location.distance[<[Target]>]> > 50:
+            - narrate "Shits far yo"
+            - ~walk <[NPC]> <[Target]> auto_range speed:2
+            - if <[loop_index]> > 5:
+                - stop
+
+
+        - if <[NPC].location.distance[<[Target]>]> <= 50:
+            - narrate "Shits close yo"
+            - ~walk <[NPC]> <[Target]> auto_range speed:2
+        - else:
+            - narrate "Shits Gone??? Chunk not loaded mb?"
+
+# Enables to command NPCs to walk distances further than ~64 blocks
+LongWalk:
+    type: task
+    script:
+        - define NPC <[1]>
+        - define Target <[2]>
+        - narrate <[NPC].location.distance[<[Target]>]>
+
+        - while <[NPC].location.distance[<[Target]>]> > 50:
+            - narrate <[NPC].location.distance[<[Target]>]>
+            - ~walk <[NPC]> <[Target]> auto_range speed:2
+
+        - if <[NPC].location.distance[<[Target]>]> <= 50:
+            - narrate "Shits close yo"
+            - ~walk <[NPC]> <[Target]> auto_range speed:2
+
+        - else:
+            - narrate "Shits Gone??? Chunk not loaded mb?"
 
 #Deposits all items in a.yml config file to a chest
 Deposit:

@@ -16,7 +16,6 @@ OnLeftClickWhip:
                 - flag <player> Selected:<player.target>
             - else:
                 - create player Mr.Slave <player.location>
-                - flag <player.target> miner
                 - flag <player.target> Role:Undefined
                 - flag <player> Selected:<player.target>
                 - adjust <player.target> Owner:<player>
@@ -34,12 +33,12 @@ OnRightClickWhip:
             - define NPC <player.flag[Selected].as_npc>
             - if <player.target.has_flag[role]>:
                 - inventory open d:<player.target.inventory>
-            - else if <player.location.distance[<[NPC].location>]> <= 100:
+            - else if <player.location.distance[<[NPC].location>]> <= 200:
 
                 - if <player.cursor_on.has_inventory> || <player.cursor_on.material.name> == ender_chest:
                     - flag <[NPC]> ChestLocation:<player.cursor_on>
                     - narrate "Chest Linked succesfully"
-                    - ~walk <[NPC]> <[NPC].flag[ChestLocation]> auto_range
+                    - ~run GoBackToChest def:<[NPC]>|<[NPC].flag[ChestLocation].as_location.above>
                     - run Deposit def:<[NPC]>
 #{ If NPC is miner type
                 - else if <[NPC].inventory.slot[36].material.name> == wooden_pickaxe:
