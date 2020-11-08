@@ -9,5 +9,5 @@ items:
   - coal
   - gold_nugget
 
---- #Distance between strips when mining
+#Distance between strips when mining
 StripMineDistance: 2
