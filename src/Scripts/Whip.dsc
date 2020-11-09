@@ -38,7 +38,8 @@ OnRightClickWhip:
                 - if <player.cursor_on.has_inventory> || <player.cursor_on.material.name> == ender_chest:
                     - flag <[NPC]> ChestLocation:<player.cursor_on>
                     - narrate "Chest Linked succesfully"
-                    - ~run GoBackToChest def:<[NPC]>|<[NPC].flag[ChestLocation].as_location.above>
+#{ NPC has to be able to jump on top of chest for movement to work
+                    - ~run LongWalk def:<[NPC]>|<[NPC].flag[ChestLocation].as_location.above>
                     - run Deposit def:<[NPC]>
 #{ If NPC is miner type
                 - else if <[NPC].inventory.slot[36].material.name> == wooden_pickaxe:

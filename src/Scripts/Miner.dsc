@@ -10,31 +10,22 @@ MiningTask:
         - flag <[NPC]> Direction:<player.eye_location.precise_impact_normal>
         - flag <[NPC]> CurrentBlockMined:<player.cursor_on>
         - flag <[NPC]> Status:Mine
+        - flag <[NPC]> StripStartingPosition:!
 
 #{ FLAGINT PRADINY BLOKA        - flag <[NPC]> 
-        - repeat 2:
-
+        - repeat 1:
+            - narrate <[value]>
             - run SetFlag def:<[NPC]>
             - flag <[NPC]> CurrentBlockMined:<[NPC].flag[StripStartingPosition].as_location>
 
-            - repeat 100:
-                - run CheckingSubScript def:<[NPC]>|Top
-                - if !<[NPC].has_flag[CurrentBlockMined]>:
-                    - repeat stop
-                - ~run MiningSubScript def:<[NPC]>
-                - flag <[NPC]> CurrentBlockMined:<[NPC].flag[CurrentBlockMined].as_location.below>
-
-                - run CheckingSubScript def:<[NPC]>|Bottom
-                - if !<[NPC].has_flag[CurrentBlockMined]>:
-                    - repeat stop
-                - ~run MiningSubScript def:<[NPC]>
-                - flag <[NPC]> CurrentBlockMined:<[NPC].flag[CurrentBlockMined].as_location.sub[<[NPC].flag[Direction].as_location>].above>
-            - ~run GoBackToChest def:<[NPC]>|<[NPC].flag[ChestLocation]>
+            - repeat 10:
+                - ~run MiningSubScript def:<[NPC]>|<[NPC].flag[Direction].as_location>
+            - ~run LongWalk def:<[NPC]>|<[NPC].flag[ChestLocation]>
             - if <[NPC].location.distance[<[NPC].flag[ChestLocation].as_location>]> > 3.5:
                 - narrate "I'm stuck, can't reach linked chest :( My current location is - <[NPC].location.round.simple>"
                 - flag <[NPC]> status:Stop
                 - stop
-            - run deposit def:<[NPC]>
+            - ~run deposit def:<[NPC]>
         - flag <[NPC]> StripStartingPosition:!
 
 
@@ -53,13 +44,35 @@ SetFlag:
             - flag <[NPC]> StripStartingPosition:<player.cursor_on>
             - narrate "Setting 1st pos"
 
-
-#NPC moves towards a single target block and simulates mining it, while receiving drops to its inventory
 MiningSubScript:
     type: task
     script:
         - define NPC <[1]>
-        - define CurrentBlockMined <[NPC].flag[CurrentBlockMined]>
+        - define Direction <[2]>
+
+        - run CheckingSubScript def:<[NPC]>|Top
+        - if !<[NPC].has_flag[CurrentBlockMined]>:
+            - repeat stop
+        - ~run MiningSubSubScript def:<[NPC]>|<[NPC].flag[CurrentBlockMined]>
+        - if !<[NPC].has_flag[CurrentBlockMined]>:
+            - repeat stop
+        - flag <[NPC]> CurrentBlockMined:<[NPC].flag[CurrentBlockMined].as_location.below>
+# NPC NEPERDUODA TARP SUBSCRIPTU OR STH PZ
+        - narrate <[NPC].flag[CurrentBlockMined].as_location>
+        - run CheckingSubScript def:<[NPC]>|Bottom
+        - if !<[NPC].has_flag[CurrentBlockMined]>:
+            - repeat stop
+#{        - ~run MiningSubSubScript def:<[NPC]>|<[NPC].flag[CurrentBlockMined]>
+        - if !<[NPC].has_flag[CurrentBlockMined]>:
+            - repeat stop
+        - flag <[NPC]> CurrentBlockMined:<[NPC].flag[CurrentBlockMined].as_location.sub[<[Direction].as_location>].above>
+
+#NPC moves towards a single target block and simulates mining it, while receiving drops to its inventory
+MiningSubSubScript:
+    type: task
+    script:
+        - define NPC <[1]>
+        - define CurrentBlockMined <[2>
 
         - if <[NPC].location.distance[<[CurrentBlockMined]>]> > 3.5:
             - walk <[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location>]> <[NPC]> auto_range
@@ -83,6 +96,8 @@ CheckingSubScript:
     type: task
     script:
         - define NPC <[1]>
+        - if !<[NPC].has_flag[CurrentBlockMined]>:
+            - stop
         - if <[NPC].flag[CurrentBlockMined].as_location.sub[<[NPC].flag[Direction].as_location>].material.is_transparent>:
             - narrate "Air in front detected, stopping mining"
             - flag <[NPC]> CurrentBlockMined:!
@@ -125,7 +140,8 @@ DistanceCheck:
         - define NPC <[1]>
         - define CurrentBlockMined <[2]>
         - wait 10s
-        - if <[NPC].location.distance[<[CurrentBlockMined]>]> > 3.5 && <[CurrentBlockMined].material.name> != air:
-            - narrate "Rekt after 20s"
-            - flag <[NPC]> CurrentBlockMined:!
+        - if <[NPC].has_flag[CurrentBlockMined]>:
+            - if <[NPC].location.distance[<[CurrentBlockMined]>]> > 3.5 && <[CurrentBlockMined].material.name> != air:
+                - narrate "Rekt after 20s <[NPC].location.distance[<[CurrentBlockMined]>]> <[CurrentBlockMined].material.name>"
+                - flag <[NPC]> CurrentBlockMined:!
 

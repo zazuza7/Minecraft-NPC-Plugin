@@ -33,20 +33,7 @@ GoBackToChestCarrot:
         on player right clicks with carrot:
         - define NPC <player.flag[Selected].as_npc>
         - define Target <player.cursor_on>
-        - narrate "Go here go there"
-        - narrate <[NPC].location.distance[<[Target]>]>
-        - while <[NPC].location.distance[<[Target]>]> > 50:
-            - narrate "Shits far yo"
-            - ~walk <[NPC]> <[Target]> auto_range speed:2
-            - if <[loop_index]> > 5:
-                - stop
-
-
-        - if <[NPC].location.distance[<[Target]>]> <= 50:
-            - narrate "Shits close yo"
-            - ~walk <[NPC]> <[Target]> auto_range speed:2
-        - else:
-            - narrate "Shits Gone??? Chunk not loaded mb?"
+        - ~run LongWalk def:<[NPC]>|<[Target]>
 
 # Enables to command NPCs to walk distances further than ~64 blocks
 LongWalk:
@@ -63,10 +50,10 @@ LongWalk:
         - if <[NPC].location.distance[<[Target]>]> <= 50:
             - narrate "Shits close yo"
             - ~walk <[NPC]> <[Target]> auto_range speed:2
-
+            - stop
         - else:
             - narrate "Shits Gone??? Chunk not loaded mb?"
-
+            - stop
 #Deposits all items in a.yml config file to a chest
 Deposit:
     type: task
@@ -92,4 +79,4 @@ Deposit:
                 - take material:<[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> from:<[NPC].inventory>
                 - stop
             - take material:<[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> from:<[NPC].inventory>
-            - wait 0.5s
+            - wait 0.4s
