@@ -29,7 +29,7 @@ OnLeftClickWhip:
 OnRightClickWhip:
     type: world
     events:
-        on player right clicks with Whip:
+        after player right clicks with Whip:
             - define NPC <player.flag[Selected].as_npc>
             - if <player.target.has_flag[role]>:
                 - inventory open d:<player.target.inventory>
@@ -38,9 +38,10 @@ OnRightClickWhip:
                 - if <player.cursor_on.has_inventory> || <player.cursor_on.material.name> == ender_chest:
                     - flag <[NPC]> ChestLocation:<player.cursor_on>
                     - narrate "Chest Linked succesfully"
-                    - ~run GoBackToChest def:<[NPC]>|<[NPC].flag[ChestLocation].as_location.above>
+# NPC has to be able to jump on top of chest
+                    - ~run LongWalk def:<[NPC]>|<[NPC].flag[ChestLocation].as_location.above>
                     - run Deposit def:<[NPC]>
-#{ If NPC is miner type
+# If NPC is miner type
                 - else if <[NPC].inventory.slot[36].material.name> == wooden_pickaxe:
                     - run MiningTask def:<[NPC]>
                 - else:
