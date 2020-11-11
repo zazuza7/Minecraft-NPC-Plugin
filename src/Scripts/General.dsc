@@ -6,12 +6,15 @@ OnServerStart:
             - yaml load:minion_plugin_config.yml id:MinionConfig
 
 #Carrot tells NPC to walk to a clicked location
-
+#Maximum distance between torches which prevents hostile mob spawning is 12 blocks
+#Less if advanced mining
 PutTorch:
     type: world
     events:
         after player right clicks with bread:
-            - modifyblock <player.cursor_on> torch
+            - narrate <player.cursor_on.material.name>
+            - if <player.cursor_on.material.name> == diamond_ore:
+                - modifyblock <player.cursor_on> air
 
 NPCRemove:
     type: world
@@ -24,17 +27,20 @@ NPCLoadYaml:
     events:
         on player right clicks with diamond_pickaxe:
             - yaml load:minion_plugin_config.yml id:MinionConfig
-            - repeat <yaml[MinionConfig].read[StripMineDistance]>:
-                - narrate <[value]>
+            - repeat 20:
+                - if <[value].mod[<yaml[MinionConfig].read[TorchDistance]>]> == 0:
+                    - narrate <[value].mod[<yaml[MinionConfig].read[TorchDistance]>]>
+                - else:
+                    - narrate <[value]>
 
 
 GoBackToChestCarrot:
     type: world
     events:
         on player right clicks with carrot:
-        - define NPC <player.flag[Selected].as_npc>
-        - define Target <player.cursor_on>
-        - ~run LongWalk def:<[NPC]>|<[Target]>
+            - define NPC <player.flag[Selected].as_npc>
+            - define Target <player.cursor_on>
+            - ~run LongWalk def:<[NPC]>|<[Target]>
 
 # Enables to command NPCs to walk distances further than ~64 blocks
 LongWalk:
@@ -55,6 +61,7 @@ LongWalk:
         - else:
             - narrate "Shits Gone??? Chunk not loaded mb?"
             - stop
+
 #Deposits all items in a.yml config file to a chest
 Deposit:
     type: task
@@ -73,7 +80,7 @@ Deposit:
         - foreach <yaml[MinionConfig].read[items]> as:item:
             - define Count <[TargetInventory].quantity.material[<[item]>]>
             - give <[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> to:<[TargetInventory]>
-#Check if TargetInventory can fit items
+#Check if TargetInventory can fit items. Should rework this to use InventoryTag.can_fit
             - if <[TargetInventory].quantity.material[<[item]>].sub[<[NPC].inventory.quantity.material[<[item]>]>]> != <[Count]>:
                 - narrate "My chest's inventory is full :( My current location is - <[NPC].location.round.simple>"
                 - flag <[NPC]> Status:Wait

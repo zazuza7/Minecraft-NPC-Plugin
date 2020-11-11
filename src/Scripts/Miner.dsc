@@ -6,18 +6,17 @@ MiningTask:
 #Stops the script if the direction is vertical
         - if <player.eye_location.precise_impact_normal.x> == 0 && <player.eye_location.precise_impact_normal.z> == 0:
             - stop
-        - flag <[NPC]> CurrentBlockMined:!
-        - wait 0.5s
+        - ~flag <[NPC]> CurrentBlockMined:!
+        - ~flag <[NPC]> StripStartingPosition:!
 
         - flag <[NPC]> Direction:<player.eye_location.precise_impact_normal>
         - flag <[NPC]> CurrentBlockMined:<player.cursor_on>
         - flag <[NPC]> Status:Mine
-        - flag <[NPC]> StripStartingPosition:!
 
 #{ FLAGINT PRADINY BLOKA        - flag <[NPC]>
-        - repeat 1:
+        - repeat 5:
 
-            - run SetFlag def:<[NPC]>
+            - run SetFlag def:<[NPC]>|<[value]>
             - flag <[NPC]> CurrentBlockMined:<[NPC].flag[StripStartingPosition].as_location>
 
             - repeat 1000:
@@ -30,6 +29,9 @@ MiningTask:
 
                 - if <[NPC].has_flag[CurrentBlockMined]>:
                     - ~run MiningSubScript def:<[NPC]>
+#Torch placement, can modify its rate in minion_plugin_config.yml
+                    - if <[value].mod[<yaml[MinionConfig].read[TorchDistance]>]> == 0 && <yaml[MinionConfig].read[Place_Torches]>:
+                        - run PlaceTorch def:<[NPC]>
                 - if <[NPC].has_flag[CurrentBlockMined]>:
                     - flag <[NPC]> CurrentBlockMined:<[NPC].flag[CurrentBlockMined].as_location.sub[<[NPC].flag[Direction].as_location>].above>
                 - if !<[NPC].has_flag[CurrentBlockMined]>:
@@ -42,19 +44,34 @@ MiningTask:
             - ~run deposit def:<[NPC]>
         - flag <[NPC]> StripStartingPosition:!
 
+PlaceTorch:
+    type: task
+    script:
+        - define NPC <[1]>
+        - if <yaml[MinionConfig].read[Place_Torches_from_Inventory]>:
+            - if <[NPC].inventory.contains.material[torch]>:
+                - take material:torch from:<[NPC].inventory>
+                - modifyblock <[NPC].flag[CurrentBlockMined]> torch
 
+            - else:
+                - flag <[NPC]> CurrentBlockMined:!
+                - flag <[NPC]> StripStartingPosition:!
+                - narrate "I'm' out of torches :( My current location is - <[NPC].location.round.simple>"
+        - else:
+            - modifyblock <[NPC].flag[CurrentBlockMined]> torch
 
 #Flags position from which the NPC will start mining a new strip
 SetFlag:
     type: task
     script:
         - define NPC <[1]>
+        - define Strip# <[2]>
         - if <[NPC].has_flag[StripStartingPosition]>:
             - repeat <yaml[MinionConfig].read[StripMineDistance]>:
                 - flag <[NPC]> StripStartingPosition:<[NPC].flag[StripStartingPosition].as_location.sub[<[NPC].flag[Direction].as_location.rotate_around_y[-1.5708].round_to_precision[1]>]>
 #{            - modifyblock <[NPC].flag[StripStartingPosition]> dirt
-            - narrate "Setting not 1st pos"
-        - else:
+            - narrate "Setting <[Strip#]> pos"
+        - else if <[Strip#]> == 1:
             - flag <[NPC]> StripStartingPosition:<player.cursor_on>
             - narrate "Setting 1st pos"
 
@@ -135,7 +152,7 @@ DistanceCheck:
         - define CurrentBlockMined <[2]>
         - chunkload <[CurrentBlockMined].chunk> duration:11s
         - wait 10s
-        - if <[NPC].location.distance[<[CurrentBlockMined]>]> > 3.5 && <[CurrentBlockMined].material.name> != air:
+        - if <[NPC].location.distance[<[CurrentBlockMined]>]> > 3.5 && <[CurrentBlockMined].material.name> != air && <[CurrentBlockMined].material.name> != torch:
             - narrate "Rekt after 20s"
             - flag <[NPC]> CurrentBlockMined:!
 

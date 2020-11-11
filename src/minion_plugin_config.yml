@@ -9,5 +9,14 @@ items:
   - coal
   - gold_nugget
 
-#Distance between strips when mining
+#Distance between strips when mining.
 StripMineDistance: 2
+
+#Whether NPC places torches upon mining.
+Place_Torches: true
+
+#Whether NPC places torches from its inventory or creates them from nothing. Has no effect if Place_Torches is false.
+Place_Torches_from_Inventory: false
+
+#Distance between torches put down by Miner NPC. Has no effect if Place_Torches is false.
+TorchDistance: 4
