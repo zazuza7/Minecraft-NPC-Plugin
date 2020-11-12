@@ -62,7 +62,7 @@ LongWalk:
             - narrate "Shits Gone??? Chunk not loaded mb?"
             - stop
 
-#Deposits all items in a.yml config file to a chest
+#Deposits all items in .yml config file to a chest
 Deposit:
     type: task
     script:
@@ -78,13 +78,14 @@ Deposit:
             - define TargetInventory <[NPC].Owner.as_player.enderchest>
 
         - foreach <yaml[MinionConfig].read[items]> as:item:
-            - define Count <[TargetInventory].quantity.material[<[item]>]>
-            - give <[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> to:<[TargetInventory]>
-#Check if TargetInventory can fit items. Should rework this to use InventoryTag.can_fit
-            - if <[TargetInventory].quantity.material[<[item]>].sub[<[NPC].inventory.quantity.material[<[item]>]>]> != <[Count]>:
+#Check if TargetInventory can fit items.
+            - if <[TargetInventory].can_fit[<[item]>].quantity[<[NPC].inventory.quantity.material[<[item]>]>]>:
+                - give <[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> to:<[TargetInventory]>
+                - take material:<[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> from:<[NPC].inventory>
+            - else:
+                - give <[item]> quantity:<[TargetInventory].can_fit[<[item]>].count> to:<[TargetInventory]>
+                - take material:<[item]> quantity:<[TargetInventory].can_fit[<[item]>].count> from:<[NPC].inventory>
                 - narrate "My chest's inventory is full :( My current location is - <[NPC].location.round.simple>"
                 - flag <[NPC]> Status:Wait
-                - take material:<[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> from:<[NPC].inventory>
                 - stop
-            - take material:<[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> from:<[NPC].inventory>
             - wait 0.3s
