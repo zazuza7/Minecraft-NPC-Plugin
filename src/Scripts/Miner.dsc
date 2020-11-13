@@ -14,7 +14,7 @@ MiningTask:
         - flag <[NPC]> Status:Mine
 
 #{ FLAGINT PRADINY BLOKA        - flag <[NPC]>
-        - repeat 5:
+        - repeat 1:
 
             - run SetFlag def:<[NPC]>|<[value]>
             - flag <[NPC]> CurrentBlockMined:<[NPC].flag[StripStartingPosition].as_location>
@@ -41,7 +41,7 @@ MiningTask:
                 - narrate "I'm stuck, can't reach linked chest :( My current location is - <[NPC].location.round.simple>"
                 - flag <[NPC]> status:Stop
                 - stop
-            - ~run deposit def:<[NPC]>
+            - ~run Collect&Deposit def:<[NPC]>
         - flag <[NPC]> StripStartingPosition:!
 
 PlaceTorch:

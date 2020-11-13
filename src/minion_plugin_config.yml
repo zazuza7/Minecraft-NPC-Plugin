@@ -20,3 +20,6 @@ Place_Torches_from_Inventory: false
 
 #Distance between torches put down by Miner NPC. Has no effect if Place_Torches is false.
 TorchDistance: 4
+
+#Amount of torches NPC tries to have before starting a new strip
+PrefferedTorchAmount: 192

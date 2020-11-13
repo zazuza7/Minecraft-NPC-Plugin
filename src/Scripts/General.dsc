@@ -12,9 +12,8 @@ PutTorch:
     type: world
     events:
         after player right clicks with bread:
-            - narrate <player.cursor_on.material.name>
-            - if <player.cursor_on.material.name> == diamond_ore:
-                - modifyblock <player.cursor_on> air
+            - define NPC <player.flag[Selected].as_npc>
+            - run Collect def:<[NPC]>
 
 NPCRemove:
     type: world
@@ -67,18 +66,18 @@ Deposit:
     type: task
     script:
         - define NPC <[1]>
-        - define Chest <[NPC].flag[ChestLocation]>
+        - define Chest <[NPC].flag[ChestLocation].as_location>
 #Checks if NPC can put items in a flagged block
-        - if !<[Chest].as_location.has_inventory> && <[Chest].as_location.material.name> != ender_chest:
+        - if !<[Chest].has_inventory> && <[Chest].material.name> != ender_chest:
             - narrate "I don't have a linked chest :(   My current location is - <[NPC].location.round.simple>"
             - stop
-        - else if <[Chest].as_location.has_inventory>:
-            - define TargetInventory <[Chest].as_location.inventory>
-        - else if <[Chest].as_location.material.name> == ender_chest:
+        - else if <[Chest].has_inventory>:
+            - define TargetInventory <[Chest].inventory>
+        - else if <[Chest].material.name> == ender_chest:
             - define TargetInventory <[NPC].Owner.as_player.enderchest>
 
         - foreach <yaml[MinionConfig].read[items]> as:item:
-#Check if TargetInventory can fit items.
+#If Items can fit into chest
             - if <[TargetInventory].can_fit[<[item]>].quantity[<[NPC].inventory.quantity.material[<[item]>]>]>:
                 - give <[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> to:<[TargetInventory]>
                 - take material:<[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> from:<[NPC].inventory>
@@ -89,3 +88,26 @@ Deposit:
                 - flag <[NPC]> Status:Wait
                 - stop
             - wait 0.3s
+#Collects torches from Chests inventory until it reaches 192
+Collect:
+    type: task
+    script:
+        - define NPC <[1]>
+        - define ChestInventory <[NPC].flag[ChestLocation].as_location.inventory>
+#Minimum amount of torches NPC will try to have in its inventory
+        - define PrefferedTorchAmount <yaml[MinionConfig].read[PrefferedTorchAmount]>
+        - narrate <[NPC].inventory.quantity[torch]>
+        - if <[NPC].inventory.quantity[torch]> < <[PrefferedTorchAmount]>:
+            - if <[NPC].inventory.quantity[torch].add[<[ChestInventory].quantity[torch]>]> <= <[PrefferedTorchAmount]>:
+                - give torch quantity:<[ChestInventory].quantity[torch]> to:<[NPC].inventory>
+                - take material:torch quantity:<[ChestInventory].quantity[torch]> from:<[ChestInventory]>
+            - else:
+                - define AmountNeeded <[PrefferedTorchAmount].sub[<[NPC].inventory.quantity[torch]>]>
+                - give torch quantity:<[AmountNeeded]> to:<[NPC].inventory>
+                - take material:torch quantity:<[AmountNeeded]> from:<[ChestInventory]>
+
+Collect&Deposit:
+    type: task
+    script:
+        - ~run Collect def:<[1]>
+        - ~run Deposit def:<[1]>
