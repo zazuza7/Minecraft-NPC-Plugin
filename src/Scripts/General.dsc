@@ -8,12 +8,50 @@ OnServerStart:
 #Carrot tells NPC to walk to a clicked location
 #Maximum distance between torches which prevents hostile mob spawning is 12 blocks
 #Less if advanced mining
-PutTorch:
+Test00:
+    type: world
+    events:
+        after player left clicks with bread:
+            - flag <player> temp:<player.cursor_on>
+
+Test01:
     type: world
     events:
         after player right clicks with bread:
-            - define NPC <player.flag[Selected].as_npc>
-            - run Collect def:<[NPC]>
+            - ~run BlockConnectionCheck def:<player.flag[Selected]>|<player.cursor_on>|<list_single[<player.location>|<player.location.below.below>]>
+
+#Checks if 2 positions are connected by 20 block radius or less
+BlockConnectionCheckOLD:
+    type: task
+    script:
+        - define NPC <[1]>
+        - define OriginalLocation <[2]>
+        - define NewLocation <[3]>
+#{        - narrate <[OriginalLocation]>
+#{        - narrate <[NewLocation]>
+        - foreach <[NewLocation].flood_fill[10]> as:Location:
+#{            - narrate <[loop_index]>
+#{            - narrate <[Location].material.name>
+#{            - narrate <[loop_index]>
+#{            - narrate <[Location]>
+            - if <[OriginalLocation]> == <[Location]>:
+                - narrate yay
+                - stop
+        - flag <[NPC]> CurrentBlockMined:!
+
+BlockConnectionCheck:
+    type: task
+    script:
+        - define NPC <[1]>
+        - define NewLocation <[2]>
+        - define OldLocations <[3]>
+
+        - foreach <[NewLocation].flood_fill[10]> as:Location:
+            - foreach <[OldLocations]> as:OldLocation:
+                - if <[OldLocation].simple> == <[Location].simple>:
+                    - narrate yay
+                    - stop
+        - flag <[NPC]> CurrentBlockMined:!
 
 NPCRemove:
     type: world

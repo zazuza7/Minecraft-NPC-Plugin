@@ -13,11 +13,11 @@ MiningTask:
         - flag <[NPC]> CurrentBlockMined:<player.cursor_on>
         - flag <[NPC]> Status:Mine
 
-#{ FLAGINT PRADINY BLOKA        - flag <[NPC]>
         - repeat 1:
 
             - run SetFlag def:<[NPC]>|<[value]>
             - flag <[NPC]> CurrentBlockMined:<[NPC].flag[StripStartingPosition].as_location>
+#{PseudoGoesHere
 
             - repeat 1000:
                 - ~run CheckingSubScript def:<[NPC]>|Top
@@ -48,17 +48,20 @@ PlaceTorch:
     type: task
     script:
         - define NPC <[1]>
-        - if <yaml[MinionConfig].read[Place_Torches_from_Inventory]>:
-            - if <[NPC].inventory.contains.material[torch]>:
-                - take material:torch from:<[NPC].inventory>
-                - modifyblock <[NPC].flag[CurrentBlockMined]> torch
+        - define TargetBlock <[NPC].flag[CurrentBlockMined].as_location>
+        - narrate <[TargetBlock].below.material.is_solid>
+        - if <[TargetBlock].below.material.is_solid>:
+            - if <yaml[MinionConfig].read[Place_Torches_from_Inventory]>:
+                - if <[NPC].inventory.contains.material[torch]>:
+                    - take material:torch from:<[NPC].inventory>
+                    - modifyblock <[TargetBlock]> torch
 
+                - else:
+                    - flag <[NPC]> CurrentBlockMined:!
+                    - flag <[NPC]> StripStartingPosition:!
+                    - narrate "I'm' out of torches :( My current location is - <[NPC].location.round.simple>"
             - else:
-                - flag <[NPC]> CurrentBlockMined:!
-                - flag <[NPC]> StripStartingPosition:!
-                - narrate "I'm' out of torches :( My current location is - <[NPC].location.round.simple>"
-        - else:
-            - modifyblock <[NPC].flag[CurrentBlockMined]> torch
+                - modifyblock <[TargetBlock]> torch
 
 #Flags position from which the NPC will start mining a new strip
 SetFlag:
@@ -81,21 +84,22 @@ MiningSubScript:
     type: task
     script:
         - define NPC <[1]>
-        - define CurrentBlockMined <[NPC].flag[CurrentBlockMined]>
+        - define CurrentBlockMined <[NPC].flag[CurrentBlockMined].as_location>
 
         - if <[NPC].location.distance[<[CurrentBlockMined]>]> > 3.5:
-            - walk <[CurrentBlockMined].as_location.add[<[NPC].flag[Direction].as_location>]> <[NPC]> auto_range
-        - run DistanceCheck def:<[NPC]>|<[NPC].flag[CurrentBlockMined].as_location>
+            - walk <[CurrentBlockMined].add[<[NPC].flag[Direction].as_location>]> <[NPC]> auto_range
+        - run DistanceCheck def:<[NPC]>|<[NPC].flag[CurrentBlockMined]>
         - waituntil <[NPC].location.distance[<[CurrentBlockMined]>]> < 3.5 || !<[NPC].has_flag[CurrentBlockMined]>
         - if <[NPC].has_flag[CurrentBlockMined]>:
-#{            - wait 0.3
-            - animate <[NPC]> ARM_SWING
-            - blockcrack <[CurrentBlockMined]> progress:<util.random.int[4].to[7]>
-#{            - wait 0.5s
-            - animate <[NPC]> ARM_SWING
-            - give <[CurrentBlockMined].as_location.drops.get[1]> to:<[NPC].inventory>
-            - modifyblock <[CurrentBlockMined]> air
-            - blockcrack <[CurrentBlockMined]> progress:0
+            - if !<[CurrentBlockMined].material.is_transparent>:
+#{                - wait 0.15
+                - animate <[NPC]> ARM_SWING
+                - blockcrack <[CurrentBlockMined]> progress:<util.random.int[4].to[7]>
+#{                - wait 0.25s
+                - animate <[NPC]> ARM_SWING
+                - give <[CurrentBlockMined].drops.get[1]> to:<[NPC].inventory>
+                - modifyblock <[CurrentBlockMined]> air
+                - blockcrack <[CurrentBlockMined]> progress:0
         - else:
             - narrate "Can't reach a block I'm trying to mine :( My current location is - <[NPC].location.round.simple>"
 
@@ -106,19 +110,22 @@ CheckingSubScript:
         - define NPC <[1]>
         - define Target <[NPC].flag[CurrentBlockMined].as_location>
         - define Direction <[NPC].flag[Direction].as_location>
+        - define StripStartingPosition <[NPC].flag[StripStartingPosition].as_location>
 
         - if !<[NPC].has_flag[CurrentBlockMined]>:
             - stop
-        - if <[Target].sub[<[Direction]>].material.is_transparent>:
-            - narrate "Air in front detected, stopping mining <[2]>"
-            - flag <[NPC]> CurrentBlockMined:!
-        - else if <[Target].sub[<[Direction]>].is_liquid>:
+        - else if <[Target].sub[<[Direction]>].material.is_transparent>:
+            - ~run BlockConnectionCheck def:<[NPC]>|<[Target].sub[<[Direction]>]>|<list_single[<[StripStartingPosition].add[<[Direction]>]>|<[Target].add[<[Direction]>]>|<[Target].add[<[Direction]>].above>]>
+            - if !<[NPC].has_flag[CurrentBlockMined]>:
+                - narrate "Air in front detected, stopping mining <[2]>"
+        - if <[Target].sub[<[Direction]>].is_liquid>:
             - narrate "Lava/Water in front detected, stopping mining"
             - flag <[NPC]> CurrentBlockMined:!
         - else if <[Target].above.material.is_transparent> && <[2]> == Top:
-            - narrate "Air above detected, stopping mining"
-            - flag <[NPC]> CurrentBlockMined:!
-        - else if <[Target].above.is_liquid> && <[2]> == Top:
+            - ~run BlockConnectionCheck def:<[NPC]>|<[Target].above>|<list_single[<[StripStartingPosition].add[<[Direction]>]>|<[Target].add[<[Direction]>]>|<[Target].add[<[Direction]>].above>]>
+            - if !<[NPC].has_flag[CurrentBlockMined]>:
+                - narrate "Air above detected, stopping mining"
+        - if <[Target].above.is_liquid> && <[2]> == Top:
             - narrate "Lava/Water above detected, stopping mining"
             - flag <[NPC]> CurrentBlockMined:!
         - else if <[Target].below.material.is_transparent> && <[2]> == Bottom:
@@ -128,15 +135,17 @@ CheckingSubScript:
             - narrate "Lava/Water below detected, stopping mining"
             - flag <[NPC]> CurrentBlockMined:!
         - else if <[Target].add[<[Direction].rotate_around_y[1.5708].round_to_precision[1]>].material.is_transparent>:
-            - narrate "Right-side Air detected, stopping mining"
-            - flag <[NPC]> CurrentBlockMined:!
-        - else if <[Target].add[<[Direction].rotate_around_y[1.5708].round_to_precision[1]>].is_liquid>:
+            - ~run BlockConnectionCheck def:<[NPC]>|<[Target].add[<[Direction].rotate_around_y[1.5708].round_to_precision[1]>]>|<list_single[<[StripStartingPosition].add[<[Direction]>]>|<[Target].add[<[Direction]>]>|<[Target].add[<[Direction]>].above>]>
+            - if !<[NPC].has_flag[CurrentBlockMined]>:
+                - narrate "Right-side Air detected, stopping mining"
+        - if <[Target].add[<[Direction].rotate_around_y[1.5708].round_to_precision[1]>].is_liquid>:
             - narrate "Right-side Lava/Water detected, stopping mining"
             - flag <[NPC]> CurrentBlockMined:!
         - else if <[Target].add[<[Direction].rotate_around_y[-1.5708].round_to_precision[1]>].material.is_transparent>:
-            - narrate "Left-side Air detected, stopping mining"
-            - flag <[NPC]> CurrentBlockMined:!
-        - else if <[Target].add[<[Direction].rotate_around_y[-1.5708].round_to_precision[1]>].is_liquid>:
+            - ~run BlockConnectionCheck def:<[NPC]>|<[Target].add[<[Direction].rotate_around_y[-1.5708].round_to_precision[1]>]>|<list_single[<[StripStartingPosition].add[<[Direction]>]>|<[Target].add[<[Direction]>]>|<[Target].add[<[Direction]>].above>]>
+            - if !<[NPC].has_flag[CurrentBlockMined]>:
+                - narrate "Left-side Air detected, stopping mining"
+        - if <[Target].add[<[Direction].rotate_around_y[-1.5708].round_to_precision[1]>].is_liquid>:
             - narrate "Left-side Lava/Water detected, stopping mining"
             - flag <[NPC]> CurrentBlockMined:!
 
