@@ -40,7 +40,7 @@ OnRightClickWhip:
                     - narrate "Chest Linked succesfully"
 # NPC has to be able to jump on top of chest
                     - ~run LongWalk def:<[NPC]>|<[NPC].flag[ChestLocation].as_location.above>
-                    - run Deposit def:<[NPC]>
+                    - ~run Collect&Deposit&Clear def:<[NPC]>
 # If NPC is miner type
                 - else if <[NPC].inventory.slot[36].material.name> == wooden_pickaxe:
                     - run MiningTask def:<[NPC]>

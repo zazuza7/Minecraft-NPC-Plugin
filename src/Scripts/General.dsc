@@ -11,14 +11,8 @@ OnServerStart:
 Test00:
     type: world
     events:
-        after player left clicks with bread:
-            - flag <player> temp:<player.cursor_on>
-
-Test01:
-    type: world
-    events:
-        after player right clicks with carrot:
-            - ~run LongWalk def:<player.flag[Selected].as_npc>|<player.cursor_on.above>
+        after player right clicks with bread:
+            - ~run ClearInventory def:<player.flag[Selected].as_npc>|<player.flag[Selected].as_npc.flag[ChestLocation].as_location.inventory>
 
 #Checks if 2 positions are connected by 10 block radius or less.
 BlockConnectionCheck:
@@ -33,7 +27,6 @@ BlockConnectionCheck:
             - foreach <[OldLocations]> as:OldLocation:
                 - if <[OldLocation].simple> == <[Location].simple>:
                     - stop
-#{        - narrate <[NewLocation].material.name>
         - flag <[NPC]> CurrentBlockMined:!
 
 NPCRemove:
@@ -52,6 +45,7 @@ NPCLoadYaml:
                     - narrate <[value].mod[<yaml[MinionConfig].read[TorchDistance]>]>
                 - else:
                     - narrate <[value]>
+            - reload
 
 
 # Enables to command NPCs to walk distances further than ~64 blocks
@@ -70,7 +64,7 @@ LongWalk:
             - ~walk <[NPC]> <[Target]> auto_range speed:2
             - stop
         - else:
-            - narrate "Shits Gone??? Chunk not loaded mb?"
+            - narrate "Long walk error, Location is unclear"
             - stop
 
 #Deposits all items in .yml config file to a chest
@@ -78,15 +72,7 @@ Deposit:
     type: task
     script:
         - define NPC <[1]>
-        - define Chest <[NPC].flag[ChestLocation].as_location>
-#Checks if NPC can put items in a flagged block
-        - if !<[Chest].has_inventory> && <[Chest].material.name> != ender_chest:
-            - narrate "I don't have a linked chest :(   My current location is - <[NPC].location.round.simple>"
-            - stop
-        - else if <[Chest].has_inventory>:
-            - define TargetInventory <[Chest].inventory>
-        - else if <[Chest].material.name> == ender_chest:
-            - define TargetInventory <[NPC].Owner.as_player.enderchest>
+        - define TargetInventory <[2]>
 
         - foreach <yaml[MinionConfig].read[items]> as:item:
 #If Items can fit into chest
@@ -106,7 +92,7 @@ Collect:
     type: task
     script:
         - define NPC <[1]>
-        - define ChestInventory <[NPC].flag[ChestLocation].as_location.inventory>
+        - define ChestInventory <[2]>
 #Minimum amount of torches NPC will try to have in its inventory
         - define PrefferedTorchAmount <yaml[MinionConfig].read[PrefferedTorchAmount]>
         - if <yaml[MinionConfig].read[Place_Torches]>:
@@ -120,8 +106,39 @@ Collect:
                         - give torch quantity:<[AmountNeeded]> to:<[NPC].inventory>
                         - take material:torch quantity:<[AmountNeeded]> from:<[ChestInventory]>
 
-Collect&Deposit:
+ClearInventory:
     type: task
     script:
-        - ~run Collect def:<[1]>
-        - ~run Deposit def:<[1]>
+        - define NPC <[1]>
+        - define ChestInventory <[2]>
+        - define flag false
+#If NPCs chest is not full
+        - if <[ChestInventory].first_empty> != -1:
+            - foreach <[NPC].inventory.list_contents> as:slot:
+                - foreach <yaml[MinionConfig].read[ItemsNotToRemove]> as:item:
+                    - if <[slot].material.name> == <[item]>:
+                        - narrate <[slot].material.name>
+                        - narrate <[item]>
+                        - define flag true
+                        - foreach stop
+                - if <[flag]> != true:
+                    - take material:<[slot].material> from:<[NPC].inventory> quantity:<[NPC].inventory.quantity.material[<[slot].material>]>
+                - define flag false
+
+Collect&Deposit&Clear:
+    type: task
+    script:
+        - define NPC <[1]>
+        - define Chest <[NPC].flag[ChestLocation].as_location>
+#Checks if NPC can put items in a flagged block
+        - if !<[Chest].has_inventory> && <[Chest].material.name> != ender_chest:
+            - narrate "I don't have a linked chest :(   My current location is - <[NPC].location.round.simple>"
+            - stop
+        - else if <[Chest].has_inventory>:
+            - define ChestInventory <[Chest].inventory>
+        - else if <[Chest].material.name> == ender_chest:
+            - define ChestInventory <[NPC].Owner.as_player.enderchest>
+
+        - ~run Collect def:<[NPC]>|<[ChestInventory]>
+        - ~run Deposit def:<[NPC]>|<[ChestInventory]>
+        - ~run ClearInventory def:<[NPC]>|<[ChestInventory]>

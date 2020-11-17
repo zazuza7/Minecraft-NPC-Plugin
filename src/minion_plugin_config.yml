@@ -16,10 +16,15 @@ StripMineDistance: 2
 Place_Torches: true
 
 #Whether NPC places torches from its inventory or creates them from nothing. Has no effect if Place_Torches is false.
-Place_Torches_from_Inventory: false
+Place_Torches_from_Inventory: true
 
 #Distance between torches put down by Miner NPC. Has no effect if Place_Torches is false.
-TorchDistance: 4
+TorchDistance: 1
 
 #Amount of torches NPC tries to have before starting a new strip
-PrefferedTorchAmount: 192
+PrefferedTorchAmount: 64
+
+#Items which are not removed from NPCs inventory after depositing
+ItemsNotToRemove:
+  - torch
+  - wooden_pickaxe

@@ -64,7 +64,7 @@ MiningTask:
             - if <[NPC].location.distance[<[NPC].flag[ChestLocation].as_location>]> > 3.5:
                 - narrate "I'm stuck, can't reach linked chest :( My current location is - <[NPC].location.round.simple>"
                 - stop
-            - ~run Collect&Deposit def:<[NPC]>
+            - ~run Collect&Deposit&Clear def:<[NPC]>
         - flag <[NPC]> StripStartingPosition:!
 
 PlaceTorch:
