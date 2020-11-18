@@ -12,7 +12,7 @@ MiningTask:
         - flag <[NPC]> CurrentBlockMined:<player.cursor_on>
         - flag <[NPC]> InitialBlockMined:<player.cursor_on>
 
-        - repeat 2:
+        - repeat 5:
 
             - if <[value]> != 1:
                 - if !<[NPC].has_flag[StripStartingPosition]>:
@@ -203,4 +203,5 @@ DistanceCheckNEW:
                 - narrate "Rekt after 20s"
                 - flag <[NPC]> CurrentBlockMined:!
                 - stop
+            - define Location <[NPC].location>
             - wait
