@@ -7,7 +7,7 @@ Whip:
         - "An item Rolandas the Great created to rule the mortals"
         - "An item left behind by the gods who have created our universe "
 
-#Spawns a NPC or selects one if aimed at
+#Spawns a NPC and sets its parameters or selects one if aimed at
 OnLeftClickWhip:
     type: world
     events:
@@ -21,6 +21,9 @@ OnLeftClickWhip:
                 - adjust <player.target> Owner:<player>
                 - adjust <player.target> Teleport_on_Stuck:false
                 - vulnerable npc:<player.target>
+                - health <player.target> state:true
+                - adjust <player.target> max_health:4
+                - adjust <player.target> skin:Slave
 
 
 #If aimed at NPC, opens its inventory

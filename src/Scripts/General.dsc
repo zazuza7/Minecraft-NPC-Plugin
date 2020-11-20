@@ -11,10 +11,34 @@ OnServerStart:
 Test00:
     type: world
     events:
-        after player right clicks with bread:
-            - ~run ClearInventory def:<player.flag[Selected].as_npc>|<player.flag[Selected].as_npc.flag[ChestLocation].as_location.inventory>
+        after player left clicks with book:
+            - flag <player> temp:<player.cursor_on>
 
-#Checks if 2 positions are connected by 10 block radius or less.
+Test01:
+    type: world
+    events:
+        after player right clicks with book:
+            - foreach <player.cursor_on.flood_fill[10].types[iron_ore|diamond_ore]> as:Location:
+                - narrate <[loop_index]>
+                - if <[Location]> == <player.flag[temp].as_location>:
+                    - narrate yay
+
+#Removes a target entity
+NPCRemove:
+    type: world
+    events:
+        on player right clicks with diamond_sword:
+            - remove <player.target>
+
+#Loads config file and reloads scripts
+NPCLoadYaml:
+    type: world
+    events:
+        on player right clicks with diamond_pickaxe:
+            - yaml load:minion_plugin_config.yml id:MinionConfig
+            - reload
+
+#Checks if 2 positions are connected by the same block type in 10 block radius or less.
 BlockConnectionCheck:
     type: task
     script:
@@ -22,31 +46,11 @@ BlockConnectionCheck:
         - define NewLocation <[2]>
         - define OldLocations <[3]>
 
-        - foreach <[NewLocation].flood_fill[10]> as:Location:
-            - narrate <[loop_index]>
+        - foreach <[NewLocation].flood_fill[10].types[air|cave_air|torch]> as:Location:
             - foreach <[OldLocations]> as:OldLocation:
                 - if <[OldLocation].simple> == <[Location].simple>:
                     - stop
         - flag <[NPC]> CurrentBlockMined:!
-
-NPCRemove:
-    type: world
-    events:
-        on player right clicks with diamond_sword:
-            - remove <player.target>
-
-NPCLoadYaml:
-    type: world
-    events:
-        on player right clicks with diamond_pickaxe:
-            - yaml load:minion_plugin_config.yml id:MinionConfig
-            - repeat 20:
-                - if <[value].mod[<yaml[MinionConfig].read[TorchDistance]>]> == 0:
-                    - narrate <[value].mod[<yaml[MinionConfig].read[TorchDistance]>]>
-                - else:
-                    - narrate <[value]>
-            - reload
-
 
 # Enables to command NPCs to walk distances further than ~64 blocks
 LongWalk:
@@ -106,6 +110,7 @@ Collect:
                         - give torch quantity:<[AmountNeeded]> to:<[NPC].inventory>
                         - take material:torch quantity:<[AmountNeeded]> from:<[ChestInventory]>
 
+#Clears NPCs inventory of all items except ones specified in configuratory files
 ClearInventory:
     type: task
     script:
@@ -125,6 +130,7 @@ ClearInventory:
                     - take material:<[slot].material> from:<[NPC].inventory> quantity:<[NPC].inventory.quantity.material[<[slot].material>]>
                 - define flag false
 
+#Runs Collect, deposit and ClearInventory scripts
 Collect&Deposit&Clear:
     type: task
     script:

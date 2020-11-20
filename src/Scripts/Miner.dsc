@@ -1,4 +1,4 @@
-
+#Should create subscripts for easier readability/editability
 MiningTask:
     type: task
     script:
@@ -11,7 +11,7 @@ MiningTask:
         - flag <[NPC]> Direction:<player.eye_location.precise_impact_normal>
         - flag <[NPC]> CurrentBlockMined:<player.cursor_on>
         - flag <[NPC]> InitialBlockMined:<player.cursor_on>
-
+#How many strips is the NPC going to mine
         - repeat 5:
 
             - if <[value]> != 1:
@@ -42,7 +42,7 @@ MiningTask:
 
             - run SetFlag def:<[NPC]>|<[value]>
             - flag <[NPC]> CurrentBlockMined:<[NPC].flag[StripStartingPosition].as_location>
-
+#How long the strips will be
             - repeat 1000:
                 - ~run CheckingSubScript def:<[NPC]>|Top
                 - if <[NPC].has_flag[CurrentBlockMined]>:
@@ -67,6 +67,7 @@ MiningTask:
             - ~run Collect&Deposit&Clear def:<[NPC]>
         - flag <[NPC]> StripStartingPosition:!
 
+#Places a torch at a target spot if enabled in config.
 PlaceTorch:
     type: task
     script:
@@ -111,7 +112,7 @@ MiningSubScript:
 
         - if <[NPC].location.distance[<[CurrentBlockMined]>]> > 3.5:
             - walk <[CurrentBlockMined].add[<[NPC].flag[Direction].as_location>]> <[NPC]> auto_range
-        - run DistanceCheckNEW def:<[NPC]>|<[NPC].flag[CurrentBlockMined]>
+        - run DistanceCheck def:<[NPC]>|<[NPC].flag[CurrentBlockMined]>
         - waituntil !<[NPC].has_flag[CurrentBlockMined]> || <[NPC].location.distance[<[CurrentBlockMined]>]> < 3.5
         - if <[NPC].has_flag[CurrentBlockMined]>:
             - if !<[CurrentBlockMined].material.is_transparent>:
@@ -173,22 +174,8 @@ CheckingSubScript:
             - flag <[NPC]> CurrentBlockMined:!
 
 
-
-
-
 #If NPC is too far to reach the target block after 20s it stops trying to reach it
 DistanceCheck:
-    type: task
-    script:
-        - define NPC <[1]>
-        - define CurrentBlockMined <[2]>
-        - chunkload <[CurrentBlockMined].chunk> duration:11s
-        - wait 10s
-        - if <[NPC].location.distance[<[CurrentBlockMined]>]> > 3.5 && <[CurrentBlockMined].material.name> != air && <[CurrentBlockMined].material.name> != torch:
-            - narrate "Rekt after 20s"
-            - flag <[NPC]> CurrentBlockMined:!
-
-DistanceCheckNEW:
     type: task
     script:
         - define NPC <[1]>
