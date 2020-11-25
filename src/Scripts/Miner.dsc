@@ -12,7 +12,7 @@ MiningTask:
         - flag <[NPC]> CurrentBlockMined:<player.cursor_on>
         - flag <[NPC]> InitialBlockMined:<player.cursor_on>
 #How many strips is the NPC going to mine
-        - repeat 5:
+        - repeat 1:
 
             - if <[value]> != 1:
                 - if !<[NPC].has_flag[StripStartingPosition]>:

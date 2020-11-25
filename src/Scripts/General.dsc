@@ -5,30 +5,68 @@ OnServerStart:
         on server start:
             - yaml load:minion_plugin_config.yml id:MinionConfig
 
-#Carrot tells NPC to walk to a clicked location
-#Maximum distance between torches which prevents hostile mob spawning is 12 blocks
-#Less if advanced mining
-Test00:
-    type: world
-    events:
-        after player left clicks with book:
-            - flag <player> temp:<player.cursor_on>
-
-Test01:
-    type: world
-    events:
-        after player right clicks with book:
-            - foreach <player.cursor_on.flood_fill[10].types[iron_ore|diamond_ore]> as:Location:
-                - narrate <[loop_index]>
-                - if <[Location]> == <player.flag[temp].as_location>:
-                    - narrate yay
-
 #Removes a target entity
 NPCRemove:
     type: world
     events:
         on player right clicks with diamond_sword:
-            - remove <player.target>
+            - remove <server.npcs_named[Mr.Slave]>
+
+NPCWalk:
+    type: world
+    events:
+        on player right clicks with carrot:
+            - run LongWalk def:<player.flag[selected].as_npc>|<player.cursor_on>
+
+#If a hostile mob is closer than 10 tiles and can see the NPC, it starts attacking it.
+NPCGetAttacked:
+    type: world
+    events:
+        on delta time secondly every:2:
+            - foreach <server.npcs_named[Mr.Slave]> as:NPC:
+                - if <[NPC].is_spawned>:
+                    - foreach <[NPC].location.find.living_entities.within[10]> as:Monster:
+                        - if <[Monster].is_monster> && <[Monster].can_see[<[NPC]>]>:
+                            - if <[Monster].entity_type> == ENDERMAN:
+                                - narrate yay
+                            - else:
+                                - attack <[Monster]> target:<[NPC]>
+                                - waituntil rate:1s !<[NPC].is_spawned> || <[Monster].location.distance[<[NPC].location>]> > 10
+                                - attack <[Monster]> cancel
+
+TestCuboidFromList:
+    type: task
+    script:
+        - define Blocks <[1]>
+        - foreach <[Blocks]> as:Block:
+            - if <[loop_index]> != 1:
+                #{update mins and maxes
+                - define MinX <[MinX].min[<[Block].x>]>
+                - define MaxX <[MinX].max[<[Block].x>]>
+                - define MinY <[MinX].min[<[Block].y>]>
+                - define MaxY <[MinX].max[<[Block].y>]>
+                - define MinZ <[MinX].min[<[Block].z>]>
+                - define MaxZ <[MinX].max[<[Block].z>]>
+            - if <[loop_index]> == 1:
+                #{define all the mins and maxes
+                - define MinX <[Block].x>
+                - define MaxX <[Block].x>
+                - define MinY <[Block].y>
+                - define MaxY <[Block].y>
+                - define MinZ <[Block].z>
+                - define MaxZ <[Block].z>
+        #Create cuboid <LocationTag.to_cuboid[<location>]>
+        #Add 2 height cuboid
+        #UNION to perfect the shape
+
+Test:
+    type: world
+    events:
+        on npc death:
+            - if <context.entity.has_flag[Owner]>:
+                - determine passively <context.entity.inventory.list_contents>
+                - narrate <context.entity.inventory.list_contents> targets:<context.entity.flag[Owner]>
+                - remove <context.entity>
 
 #Loads config file and reloads scripts
 NPCLoadYaml:
