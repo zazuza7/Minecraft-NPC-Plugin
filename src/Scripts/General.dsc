@@ -10,7 +10,7 @@ NPCRemove:
     type: world
     events:
         on player right clicks with diamond_sword:
-            - remove <server.npcs_named[Mr.Slave]>
+            - remove <server.npcs_named[Minion]>
 
 NPCWalk:
     type: world
@@ -23,7 +23,7 @@ NPCGetAttacked:
     type: world
     events:
         on delta time secondly every:2:
-            - foreach <server.npcs_named[Mr.Slave]> as:NPC:
+            - foreach <server.npcs_named[Minion]> as:NPC:
                 - if <[NPC].is_spawned>:
                     - foreach <[NPC].location.find.living_entities.within[10]> as:Monster:
                         - if <[Monster].is_monster> && <[Monster].can_see[<[NPC]>]>:
@@ -34,19 +34,28 @@ NPCGetAttacked:
                                 - waituntil rate:1s !<[NPC].is_spawned> || <[Monster].location.distance[<[NPC].location>]> > 10
                                 - attack <[Monster]> cancel
 
+#Makes the NPC jump 1 block and places a block underneath
+Test03:
+    type: world
+    events:
+        on player right clicks with bread:
+            - define Start <player.target.location>
+            - adjust <player.target> velocity:0,0.38,0
+            - wait 0.3s
+            - modifyblock <[Start]> dirt
+
+Test04:
+    type: world
+    events:
+        on player right clicks with bone:
+            - run TestCuboidFromList def:<list_single[<player.cursor_on.flood_fill[4]>]>
+
+
 TestCuboidFromList:
     type: task
     script:
         - define Blocks <[1]>
         - foreach <[Blocks]> as:Block:
-            - if <[loop_index]> != 1:
-                #{update mins and maxes
-                - define MinX <[MinX].min[<[Block].x>]>
-                - define MaxX <[MinX].max[<[Block].x>]>
-                - define MinY <[MinX].min[<[Block].y>]>
-                - define MaxY <[MinX].max[<[Block].y>]>
-                - define MinZ <[MinX].min[<[Block].z>]>
-                - define MaxZ <[MinX].max[<[Block].z>]>
             - if <[loop_index]> == 1:
                 #{define all the mins and maxes
                 - define MinX <[Block].x>
@@ -55,8 +64,20 @@ TestCuboidFromList:
                 - define MaxY <[Block].y>
                 - define MinZ <[Block].z>
                 - define MaxZ <[Block].z>
+            - else:
+                #{update mins and maxes
+                - narrate <[Block]> targets:<server.players>
+                - define MinX <[MinX].min[<[Block].x>]>
+                - define MaxX <[MaxX].max[<[Block].x>]>
+                - define MinY <[MinY].min[<[Block].y>]>
+                - define MaxY <[MaxY].max[<[Block].y>]>
+                - define MinZ <[MinZ].min[<[Block].z>]>
+                - define MaxZ <[MaxZ].max[<[Block].z>]>
+        - define Cuboid1 <location[<[MinX]>,<[MinY]>,<[MinZ]>].to_cuboid[<[MaxX]>,<[MaxY]>,<[MaxZ]>]>
+#{        - define Cuboid1 <[<[MinX]>,<[MinY]>,<[MinZ]>].location.to_cuboid[<[MaxX]>,<[MaxY]>,<[MaxZ]>]>
         #Create cuboid <LocationTag.to_cuboid[<location>]>
-        #Add 2 height cuboid
+#{        - modifyblock <[Cuboid1]> glass
+        - modifyblock <cuboid[<[MinX]>,<[MinY]>,<[MinZ]>,world|<[MaxX]>,<[MaxY]>,<[MaxZ]>,world]> glass
         #UNION to perfect the shape
 
 Test:

@@ -2,7 +2,7 @@ OnBookClick:
     type: world
     events:
         on player clicks block with:written_book:
-            - if <context.item.book_title> == Romeo:
+            - if <context.item.book_title> == MinionControl:
                 - determine passively cancelled
                 - ratelimit <player> 1t
 
@@ -20,6 +20,9 @@ OnBookClick:
                                 - narrate "Chest Linked succesfully"
 # NPC has to be able to jump on top of chest
                                 - ~run LongWalk def:<[NPC]>|<[NPC].flag[ChestLocation].as_location.above>
+                                - if <[NPC].location.distance[<[NPC].flag[ChestLocation].as_location>]> > 3.5:
+                                    - narrate "Can't reach my linked chest :( My current location is - <[NPC].location.round.simple>"
+                                    - stop
                                 - ~run Collect&Deposit&Clear def:<[NPC]>
 # If NPC is miner type and player is aiming at a normal block - starts mining
                             - else if <[NPC].inventory.slot[36].material.name> == wooden_pickaxe:
@@ -35,7 +38,7 @@ OnBookClick:
                         - flag <player> Selected:<player.target>
 #Or Spawns a NPC and sets its parameters
                     - else:
-                        - create player Mr.Slave <player.location>
+                        - create player Minion <player.location>
                         - flag <player.target> Role:Undefined
                         - flag <player.target> Owner:<player>
                         - flag <player> Selected:<player.target>

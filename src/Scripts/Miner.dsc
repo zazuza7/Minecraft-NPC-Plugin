@@ -40,7 +40,7 @@ MiningTask:
 
                 - flag <[NPC]> Direction:<[NPC].flag[Direction].as_location.rotate_around_y[1.5708].round_to_precision[1]>
 
-            - run SetFlag def:<[NPC]>|<[value]>
+            - run SetStripStartingPosition def:<[NPC]>|<[value]>
             - flag <[NPC]> CurrentBlockMined:<[NPC].flag[StripStartingPosition].as_location>
 #How long the strips will be
             - repeat 1000:
@@ -62,7 +62,7 @@ MiningTask:
                     - repeat stop
             - ~run LongWalk def:<[NPC]>|<[NPC].flag[ChestLocation]>
             - if <[NPC].location.distance[<[NPC].flag[ChestLocation].as_location>]> > 3.5:
-                - narrate "I'm stuck, can't reach linked chest :( My current location is - <[NPC].location.round.simple>"
+                - narrate "Can't reach my linked chest :( My current location is - <[NPC].location.round.simple>"
                 - stop
             - ~run Collect&Deposit&Clear def:<[NPC]>
         - flag <[NPC]> StripStartingPosition:!
@@ -88,7 +88,7 @@ PlaceTorch:
                 - modifyblock <[TargetBlock]> torch
 
 #Flags position from which the NPC will start mining a new strip
-SetFlag:
+SetStripStartingPosition:
     type: task
     script:
         - define NPC <[1]>
@@ -182,7 +182,8 @@ DistanceCheck:
         - define CurrentBlockMined <[2]>
         - chunkload <[CurrentBlockMined].chunk> duration:11s
         - define Location <[NPC].location>
-        - wait 2s
+        - wait 3s
+#Should I add cave air here?
         - while <[CurrentBlockMined].material.name> != air && <[CurrentBlockMined].material.name> != torch:
             - narrate <[Location].simple>
             - narrate "<[NPC].location.simple> sviezias"
@@ -191,4 +192,4 @@ DistanceCheck:
                 - flag <[NPC]> CurrentBlockMined:!
                 - stop
             - define Location <[NPC].location>
-            - wait
+            - wait 3s
