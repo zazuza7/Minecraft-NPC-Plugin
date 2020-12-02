@@ -25,10 +25,11 @@ OnBookClick:
                                     - stop
                                 - ~run Collect&Deposit&Clear def:<[NPC]>
 # If NPC is miner type and player is aiming at a normal block - starts mining
-                            - else if <[NPC].inventory.slot[36].material.name> == wooden_pickaxe:
-                                - run MiningTask def:<[NPC]>
+                            - else if <[NPC].inventory.slot[1].material.name> == wooden_pickaxe:
+#{                                - run MiningTask def:<[NPC]>
+                                - run TopFunction def:<player.flag[Selected].as_npc>|<player.cursor_on>|<player.eye_location.precise_impact_normal.rotate_around_y[-1.5708].rotate_around_y[-1.5708].round_to_precision[1]>
                             - else:
-                                - narrate "I lack purpose. Please put a tool in my last slot."
+                                - narrate "I lack purpose. Please put a tool in my first slot."
                     - else:
                         - narrate "No selected NPCs found nearby"
 

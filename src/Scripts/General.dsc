@@ -18,24 +18,8 @@ NPCWalk:
         on player right clicks with carrot:
             - run LongWalk def:<player.flag[selected].as_npc>|<player.cursor_on>
 
-#If a hostile mob is closer than 10 tiles and can see the NPC, it starts attacking it.
-NPCGetAttacked:
-    type: world
-    events:
-        on delta time secondly every:2:
-            - foreach <server.npcs_named[Minion]> as:NPC:
-                - if <[NPC].is_spawned>:
-                    - foreach <[NPC].location.find.living_entities.within[10]> as:Monster:
-                        - if <[Monster].is_monster> && <[Monster].can_see[<[NPC]>]>:
-                            - if <[Monster].entity_type> == ENDERMAN:
-                                - narrate yay
-                            - else:
-                                - attack <[Monster]> target:<[NPC]>
-                                - waituntil rate:1s !<[NPC].is_spawned> || <[Monster].location.distance[<[NPC].location>]> > 10
-                                - attack <[Monster]> cancel
-
 #Makes the NPC jump 1 block and places a block underneath
-Test03:
+TestJump:
     type: world
     events:
         on player right clicks with bread:
@@ -44,7 +28,7 @@ Test03:
             - wait 0.3s
             - modifyblock <[Start]> dirt
 
-Test04:
+TestCuboid:
     type: world
     events:
         on player right clicks with bone:
@@ -80,6 +64,7 @@ TestCuboidFromList:
         - modifyblock <cuboid[<[MinX]>,<[MinY]>,<[MinZ]>,world|<[MaxX]>,<[MaxY]>,<[MaxZ]>,world]> glass
         #UNION to perfect the shape
 
+#Narrates NPCs inventory contents after its death. Finally works properly(?)
 Test:
     type: world
     events:
@@ -97,19 +82,43 @@ NPCLoadYaml:
             - yaml load:minion_plugin_config.yml id:MinionConfig
             - reload
 
-#Checks if 2 positions are connected by the same block type in 10 block radius or less.
+#If a hostile mob is closer than 10 tiles and can see the NPC, it starts attacking it.
+NPCGetAttacked:
+    type: world
+    events:
+        on delta time secondly every:2:
+            - foreach <server.npcs_named[Minion]> as:NPC:
+                - if <[NPC].is_spawned>:
+                    - foreach <[NPC].location.find.living_entities.within[10]> as:Monster:
+                        - if <[Monster].is_monster> && <[Monster].can_see[<[NPC]>]>:
+                            - if <[Monster].entity_type> == ENDERMAN:
+                                - narrate yay
+                            - else:
+                                - attack <[Monster]> target:<[NPC]>
+                                - waituntil rate:1s !<[NPC].is_spawned> || <[Monster].location.distance[<[NPC].location>]> > 10 || !<[Monster].can_see[<[NPC]>]>
+                                - attack <[Monster]> cancel
+
+#Checks if NewLocation can find one of the old locations by using flood_fill tag
+#Flags the NPC if unable
 BlockConnectionCheck:
     type: task
     script:
         - define NPC <[1]>
         - define NewLocation <[2]>
         - define OldLocations <[3]>
+        - define FloodFillDistance 6
 
-        - foreach <[NewLocation].flood_fill[10].types[air|cave_air|torch]> as:Location:
-            - foreach <[OldLocations]> as:OldLocation:
+#Removes Old locations which are too far to be found in the 2nd foreach
+        - foreach <[OldLocations]> as:OldLocation:
+            - if <[OldLocation].distance[<[NewLocation]>]> > <[FloodFillDistance]>:
+               - define OldLocations:<-:<[OldLocation]>
+
+        - foreach <[OldLocations]> as:OldLocation:
+            - foreach <[NewLocation].flood_fill[<[FloodFillDistance]>].types[air|cave_air|torch]> as:Location:
                 - if <[OldLocation].simple> == <[Location].simple>:
                     - stop
-        - flag <[NPC]> CurrentBlockMined:!
+        - flag <[NPC]> StopMining:1
+        - narrate StopMiningFloodFill
 
 # Enables to command NPCs to walk distances further than ~64 blocks
 LongWalk:

@@ -12,6 +12,10 @@ items:
 #Distance between strips when mining.
 StripMineDistance: 2
 
+#Dimensions of a single strip
+Strip_Height: 2
+Strip_Width: 2
+
 #Whether NPC places torches upon mining.
 Place_Torches: true
 
