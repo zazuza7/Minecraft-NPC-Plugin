@@ -59,7 +59,7 @@ MoreEfficientLocationLoop:
 
     - define NewVerticalLineVector <[Right].add[<[Top].mul[<[Height].sub[1]>]>]>
 #This line is Greedy, mining could fail earlier than that. Should be changed if I'll have time
-    - while <[SavedLoopIndex]> < <[H*W].mul[<[Depth]>]>:
+    - while <[SavedLoopIndex]> < <[H*W].mul[<[Depth]>]> && !<[NPC].has_flag[StopMining]>:
         - define SavedLoopIndex <[loop_index]>
         - flag <[NPC]> StopMiningBlock:!
 #Check front block for hazards
@@ -110,6 +110,21 @@ MoreEfficientLocationLoop:
                 - define InvalidBlockCounter:++
         - else:
             - define InvalidBlockCounter:++
+
+#Place a torch
+#If Placing torches is enabled in config
+        - if <yaml[MinionConfig].read[Place_Torches]>:
+#If current block mined is in the bottom row
+            - if <[SavedLoopIndex].mod[<[Height]>]> == 0:
+#If the block mined is in the middle column
+                - if <[SavedLoopIndex].sub[1].mod[<[H*W]>]> >= <[Width].div[2].round_down.mul[<[Height]>]> && <[SavedLoopIndex].sub[1].mod[<[H*W]>]> < <[Width].div[2].round_down.mul[<[Height]>].add[<[Height]>]>:
+#If should place torch at current depth
+                    - narrate <[SavedLoopIndex].sub[1].div[<[H*W]>].round_down.add[1].mod[<yaml[MinionConfig].read[TorchDistance]>]>
+                    - if <[SavedLoopIndex].sub[1].div[<[H*W]>].round_down.add[1].mod[<yaml[MinionConfig].read[TorchDistance]>]> == 1:
+                        - narrate <yaml[MinionConfig].read[Place_Torches]> targets:<server.players>
+                        - run PlaceTorch def:<[NPC]>|<[CurrentLocation]>
+
+
 
 #Find next block to mine
         - if <[SavedLoopIndex].mod[<[H*W]>]> == 0:
@@ -165,3 +180,19 @@ MiningSubScriptEdit:
         - else:
                 - narrate "Can't reach target block"
                 - flag <[NPC]> StopMiningBlock:1
+
+#Places a torch at a target spot if enabled in config.
+PlaceTorch:
+    type: task
+    script:
+        - define NPC <[1]>
+        - define TargetBlock <[2]>
+        - if <[TargetBlock].below.material.is_solid>:
+            - if <yaml[MinionConfig].read[Place_Torches_from_Inventory]>:
+                - if <[NPC].inventory.contains.material[torch]>:
+                    - take material:torch from:<[NPC].inventory>
+                - else:
+                    - flag <[NPC]> StopMining:1
+                    - narrate "I'm out of torches :( My current location is - <[NPC].location.round.simple>"
+                    - stop
+            - modifyblock <[TargetBlock]> torch

@@ -87,16 +87,18 @@ NPCGetAttacked:
     type: world
     events:
         on delta time secondly every:2:
-            - foreach <server.npcs_named[Minion]> as:NPC:
-                - if <[NPC].is_spawned>:
-                    - foreach <[NPC].location.find.living_entities.within[10]> as:Monster:
-                        - if <[Monster].is_monster> && <[Monster].can_see[<[NPC]>]>:
-                            - if <[Monster].entity_type> == ENDERMAN:
-                                - narrate yay
-                            - else:
-                                - attack <[Monster]> target:<[NPC]>
-                                - waituntil rate:1s !<[NPC].is_spawned> || <[Monster].location.distance[<[NPC].location>]> > 20 || !<[Monster].can_see[<[NPC]>]>
-                                - attack <[Monster]> cancel
+            - if <yaml[MinionConfig].read[Monster_Hostility]>:
+                - foreach <server.npcs_named[Minion]> as:NPC:
+                    - if <[NPC].is_spawned>:
+#Loop through all monster within 10 tiles of NPC
+                        - foreach <[NPC].location.find.living_entities.within[10]> as:Monster:
+#Check if monster has line-of-sight to NPC
+                            - if <[Monster].is_monster> && <[Monster].can_see[<[NPC]>]>:
+#If monster is not on exception list - attack NPC
+                                - if <yaml[MinionConfig].read[Hostile_Monster_Exceptions].find[<[Monster].entity_type>]> == -1:
+                                    - attack <[Monster]> target:<[NPC]>
+                                    - waituntil rate:1s !<[NPC].is_spawned> || <[Monster].location.distance[<[NPC].location>]> > 20 || !<[Monster].can_see[<[NPC]>]>
+                                    - attack <[Monster]> cancel
 
 #Checks if NewLocation can find one of the old locations by using flood_fill tag
 #Flags the NPC if unable

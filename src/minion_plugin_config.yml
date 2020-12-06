@@ -9,6 +9,15 @@ items:
   - coal
   - gold_nugget
 
+#Whether Hostile mobs will attack NPCs on sight. Only works when distance is <=10 blocks.
+Monster_Hostility: true
+
+#List of hostile monsters who are not going to attack NPCs
+Hostile_Monster_Exceptions:
+- enderman
+- creeper
+
+
 #Distance between strips when mining.
 StripMineDistance: 2
 
