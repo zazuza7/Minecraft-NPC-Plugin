@@ -8,26 +8,24 @@ TopFunction:
     - define NPC <[1]>
     - define InitialLocation <[2]>
     - define Direction <[3]>
-
+    - flag <[NPC]> StopMining:!
     - define NextInitialLocationVector <[Direction].rotate_around_y[-1.5708].round_to_precision[1].mul[<[StripMineDistance].add[<[Width].sub[1]>]>]>
 
-    - while true:
+    - while !<[NPC].has_flag[StopMining]>:
         - ~run MoreEfficientLocationLoop def:<[NPC]>|<[InitialLocation]>|<[Direction]>|<[Depth]>
         - define InitialLocation:<[InitialLocation].add[<[NextInitialLocationVector]>]>
 
-#Change direction and mine till other strip
+        - if <[NPC].has_flag[ChestLocation]>:
+            - ~run LongWalk def:<[NPC]>|<[NPC].flag[ChestLocation]>
+            - ~run Collect&Deposit&Clear def:<[NPC]>
+        - else:
+            - narrate "I don't have a linked chest."
+        - if <[loop_index]> == 1:
+            - stop
+#Changes direction and mines untill reaches next strip
         - ~run MoreEfficientLocationLoop def:<[NPC]>|<[InitialLocation].sub[<[Direction]>].add[<[Direction].rotate_around_y[1.5708].round_to_precision[1].mul[<[StripMineDistance]>]>]>|<[Direction].rotate_around_y[-1.5708].round_to_precision[1]>|<[StripMineDistance].add[<[Width]>]>
 
-        - if <[loop_index]> == 3:
-            - stop
 
-#{        - if <[NPC].has_flag[ChestLocation]>:
-#{            - ~run LongWalk def:<[NPC]>|<[NPC].flag[ChestLocation]>
-#{            - ~run Collect&Deposit&Clear def:<[NPC]>
-
-
-#{        - else:
-#{            - narrate "I don't have a linked chest."
 
 MoreEfficientLocationLoop:
     type: task
@@ -41,6 +39,8 @@ MoreEfficientLocationLoop:
     - define CurrentLocation <[InitialLocation]>
     - define InvalidBlockCounter:0
     - define SavedLoopIndex 0
+
+    - flag <[NPC]> StopMining:!
 
     - define LocationsNotToMine:->:1
     - define LocationsNotToMine:<-:1
@@ -59,12 +59,12 @@ MoreEfficientLocationLoop:
 
     - define NewVerticalLineVector <[Right].add[<[Top].mul[<[Height].sub[1]>]>]>
 #This line is Greedy, mining could fail earlier than that. Should be changed if I'll have time
-    - while <[InvalidBlockCounter]> < <[H*W].sub[1]> && <[SavedLoopIndex]> < <[H*W].mul[<[Depth]>]>:
+    - while <[SavedLoopIndex]> < <[H*W].mul[<[Depth]>]>:
         - define SavedLoopIndex <[loop_index]>
-        - flag <[NPC]> StopMining:!
+        - flag <[NPC]> StopMiningBlock:!
 #Check front block for hazards
         - run CheckNewBlock def:<[NPC]>|<[CurrentLocation].add[<[Front]>]>|<[InitialLocation].add[<[Back]>]>
-        - if <[NPC].has_flag[StopMining]>:
+        - if <[NPC].has_flag[StopMiningBlock]>:
             - define LocationsNotToMine:->:<[CurrentLocation]>
             - define LocationsNotToMine:->:<[CurrentLocation].add[<[Front]>]>
             - define LocationsNotToMine:->:<[CurrentLocation].add[<[Front]>].add[<[Front]>]>
@@ -98,17 +98,18 @@ MoreEfficientLocationLoop:
 #Checks if current location is not supposed to be mined CIA BLT KEICIA LOOP INDEXA
         - foreach <[LocationsNotToMine]> as:Location:
             - if <[Location]> == <[CurrentLocation]>:
-                - define InvalidBlockCounter:++
                 - define LocationsNotToMine <[LocationsNotToMine]>:<-:<[Location]>
-                - flag <[NPC]> StopMining:1
+                - flag <[NPC]> StopMiningBlock:1
                 - foreach stop
 #Mine current block
-        - if !<[NPC].has_flag[StopMining]>:
+        - if !<[NPC].has_flag[StopMiningBlock]>:
             - ~run MiningSubscriptEdit def:<[NPC]>|<[CurrentLocation]>|<[Direction]>
-            - if !<[NPC].has_flag[StopMining]>:
+            - if !<[NPC].has_flag[StopMiningBlock]>:
                 - define InvalidBlockCounter:0
             - else:
                 - define InvalidBlockCounter:++
+        - else:
+            - define InvalidBlockCounter:++
 
 #Find next block to mine
         - if <[SavedLoopIndex].mod[<[H*W]>]> == 0:
@@ -117,6 +118,11 @@ MoreEfficientLocationLoop:
             - define CurrentLocation <[CurrentLocation].add[<[NewVerticalLineVector]>]>
         - else:
             - define CurrentLocation <[CurrentLocation].below>
+
+        - if <[InvalidBlockCounter]> >= <[H*W].sub[1]>:
+            - flag <[NPC]> StopMining:1
+            - narrate "Too many errors"
+            - stop
 
 CheckNewBlock:
     type: task
@@ -127,7 +133,7 @@ CheckNewBlock:
     - if <[Location].material.name> == air || <[Location].material.name> == cave_air:
         - ~run BlockConnectionCheck def:<[NPC]>|<[Location]>|<list_single[<[NPC].location>|<[InitialLocation]>]>
     - else if <[Location].is_liquid>:
-        - flag <[NPC]> StopMining:1
+        - flag <[NPC]> StopMiningBlock:1
         - narrate StopMiningLiquid
 
 
@@ -158,4 +164,4 @@ MiningSubScriptEdit:
                 - narrate "Block I'm trying to mine is transparent :( My current location is - <[NPC].location.round.simple>"
         - else:
                 - narrate "Can't reach target block"
-                - flag <[NPC]> StopMining:1
+                - flag <[NPC]> StopMiningBlock:1

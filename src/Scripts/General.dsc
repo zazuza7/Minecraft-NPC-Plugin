@@ -95,7 +95,7 @@ NPCGetAttacked:
                                 - narrate yay
                             - else:
                                 - attack <[Monster]> target:<[NPC]>
-                                - waituntil rate:1s !<[NPC].is_spawned> || <[Monster].location.distance[<[NPC].location>]> > 10 || !<[Monster].can_see[<[NPC]>]>
+                                - waituntil rate:1s !<[NPC].is_spawned> || <[Monster].location.distance[<[NPC].location>]> > 20 || !<[Monster].can_see[<[NPC]>]>
                                 - attack <[Monster]> cancel
 
 #Checks if NewLocation can find one of the old locations by using flood_fill tag
@@ -117,7 +117,7 @@ BlockConnectionCheck:
             - foreach <[NewLocation].flood_fill[<[FloodFillDistance]>].types[air|cave_air|torch]> as:Location:
                 - if <[OldLocation].simple> == <[Location].simple>:
                     - stop
-        - flag <[NPC]> StopMining:1
+        - flag <[NPC]> StopMiningBlock:1
         - narrate StopMiningFloodFill
 
 # Enables to command NPCs to walk distances further than ~64 blocks
