@@ -4,7 +4,8 @@ TopFunction:
     - define Width <yaml[MinionConfig].read[Strip_Width]>
     - define Height <yaml[MinionConfig].read[Strip_Height]>
     - define StripMineDistance <yaml[MinionConfig].read[StripMineDistance]>
-    - define Depth 3
+#Should expose this variable to .yml?
+    - define Depth 2
     - define NPC <[1]>
     - define InitialLocation <[2]>
     - define Direction <[3]>
@@ -12,22 +13,25 @@ TopFunction:
     - define NextInitialLocationVector <[Direction].rotate_around_y[-1.5708].round_to_precision[1].mul[<[StripMineDistance].add[<[Width].sub[1]>]>]>
 
     - while !<[NPC].has_flag[StopMining]>:
-        - ~run MoreEfficientLocationLoop def:<[NPC]>|<[InitialLocation]>|<[Direction]>|<[Depth]>
+        - ~run SingleStripMining def:<[NPC]>|<[InitialLocation]>|<[Direction]>|<[Depth]>
         - define InitialLocation:<[InitialLocation].add[<[NextInitialLocationVector]>]>
-
         - if <[NPC].has_flag[ChestLocation]>:
             - ~run LongWalk def:<[NPC]>|<[NPC].flag[ChestLocation]>
             - ~run Collect&Deposit&Clear def:<[NPC]>
         - else:
-            - narrate "I don't have a linked chest."
-        - if <[loop_index]> == 1:
-            - stop
-#Changes direction and mines untill reaches next strip
-        - ~run MoreEfficientLocationLoop def:<[NPC]>|<[InitialLocation].sub[<[Direction]>].add[<[Direction].rotate_around_y[1.5708].round_to_precision[1].mul[<[StripMineDistance]>]>]>|<[Direction].rotate_around_y[-1.5708].round_to_precision[1]>|<[StripMineDistance].add[<[Width]>]>
+            - narrate "I don't have a linked chest :( My current location is - <[NPC].location.round.simple>"
+            - flag <[NPC]> StopMining:1
+#Changes direction and mines until reaching next strip
+        - ~run SingleStripMining def:<[NPC]>|<[InitialLocation].sub[<[Direction]>].add[<[Direction].rotate_around_y[1.5708].round_to_precision[1].mul[<[StripMineDistance]>]>]>|<[Direction].rotate_around_y[-1.5708].round_to_precision[1]>|<[StripMineDistance].add[<[Width]>]>
+        - if <[NPC].has_flag[StopMiningStrip]>:
+            - flag <[NPC]> StopMining:1
+    - narrate "Can't mine any further :( My current location is - <[NPC].location.round.simple> "
+    - ~run LongWalk def:<[NPC]>|<[NPC].flag[ChestLocation]>
+    - ~run Collect&Deposit&Clear def:<[NPC]>
 
 
 
-MoreEfficientLocationLoop:
+SingleStripMining:
     type: task
     script:
     - define Width <yaml[MinionConfig].read[Strip_Width]>
@@ -38,9 +42,9 @@ MoreEfficientLocationLoop:
     - define Depth <[4]>
     - define CurrentLocation <[InitialLocation]>
     - define InvalidBlockCounter:0
-    - define SavedLoopIndex 0
+    - define SavedLoopIndex:0
 
-    - flag <[NPC]> StopMining:!
+    - flag <[NPC]> StopMiningStrip:!
 
     - define LocationsNotToMine:->:1
     - define LocationsNotToMine:<-:1
@@ -51,18 +55,18 @@ MoreEfficientLocationLoop:
     - define Back <[Direction].rotate_around_y[-1.5708].rotate_around_y[-1.5708].round_to_precision[1]>
     - define Top <location[0,1,0]>
     - define Bottom <location[0,-1,0]>
-
+#Width*Height
     - define H*W <[Width].mul[<[Height]>]>
 
     - define NewDepthVector <[Front].add[<[Top].mul[<[Height].sub[1]>]>]>
     - define NewDepthVector <[NewDepthVector].add[<[Left].mul[<[Width].sub[1]>]>]>
 
     - define NewVerticalLineVector <[Right].add[<[Top].mul[<[Height].sub[1]>]>]>
-#This line is Greedy, mining could fail earlier than that. Should be changed if I'll have time
-    - while <[SavedLoopIndex]> < <[H*W].mul[<[Depth]>]> && !<[NPC].has_flag[StopMining]>:
+    - while <[SavedLoopIndex]> < <[H*W].mul[<[Depth]>]> && !<[NPC].has_flag[StopMiningStrip]> && !<[NPC].has_flag[StopMining]>:
         - define SavedLoopIndex <[loop_index]>
         - flag <[NPC]> StopMiningBlock:!
 #Check front block for hazards
+#If same location gets added to the list more than once - it could clog up the list. Should test that out.
         - run CheckNewBlock def:<[NPC]>|<[CurrentLocation].add[<[Front]>]>|<[InitialLocation].add[<[Back]>]>
         - if <[NPC].has_flag[StopMiningBlock]>:
             - define LocationsNotToMine:->:<[CurrentLocation]>
@@ -95,7 +99,7 @@ MoreEfficientLocationLoop:
         - if <[SavedLoopIndex].mod[<[Height]>]> == 0:
             - run CheckNewBlock def:<[NPC]>|<[CurrentLocation].below>|<[InitialLocation].add[<[Back]>]>
 
-#Checks if current location is not supposed to be mined CIA BLT KEICIA LOOP INDEXA
+#Checks if current location is not supposed to be mined
         - foreach <[LocationsNotToMine]> as:Location:
             - if <[Location]> == <[CurrentLocation]>:
                 - define LocationsNotToMine <[LocationsNotToMine]>:<-:<[Location]>
@@ -103,7 +107,7 @@ MoreEfficientLocationLoop:
                 - foreach stop
 #Mine current block
         - if !<[NPC].has_flag[StopMiningBlock]>:
-            - ~run MiningSubscriptEdit def:<[NPC]>|<[CurrentLocation]>|<[Direction]>
+            - ~run MineSingleBlock def:<[NPC]>|<[CurrentLocation]>|<[Direction]>
             - if !<[NPC].has_flag[StopMiningBlock]>:
                 - define InvalidBlockCounter:0
             - else:
@@ -111,7 +115,7 @@ MoreEfficientLocationLoop:
         - else:
             - define InvalidBlockCounter:++
 
-#Place a torch
+#Places a torch
 #If Placing torches is enabled in config
         - if <yaml[MinionConfig].read[Place_Torches]>:
 #If current block mined is in the bottom row
@@ -119,12 +123,10 @@ MoreEfficientLocationLoop:
 #If the block mined is in the middle column
                 - if <[SavedLoopIndex].sub[1].mod[<[H*W]>]> >= <[Width].div[2].round_down.mul[<[Height]>]> && <[SavedLoopIndex].sub[1].mod[<[H*W]>]> < <[Width].div[2].round_down.mul[<[Height]>].add[<[Height]>]>:
 #If should place torch at current depth
-                    - narrate <[SavedLoopIndex].sub[1].div[<[H*W]>].round_down.add[1].mod[<yaml[MinionConfig].read[TorchDistance]>]>
                     - if <[SavedLoopIndex].sub[1].div[<[H*W]>].round_down.add[1].mod[<yaml[MinionConfig].read[TorchDistance]>]> == 1:
-                        - narrate <yaml[MinionConfig].read[Place_Torches]> targets:<server.players>
-                        - run PlaceTorch def:<[NPC]>|<[CurrentLocation]>
-
-
+#If NPC mined the block previously there
+                        - if !<[NPC].has_flag[StopMiningBlock]>:
+                            - ~run PlaceTorch def:<[NPC]>|<[CurrentLocation]>
 
 #Find next block to mine
         - if <[SavedLoopIndex].mod[<[H*W]>]> == 0:
@@ -133,11 +135,10 @@ MoreEfficientLocationLoop:
             - define CurrentLocation <[CurrentLocation].add[<[NewVerticalLineVector]>]>
         - else:
             - define CurrentLocation <[CurrentLocation].below>
-
+#This line is Greedy, mining could fail earlier than that. Should be changed if I'll have time
         - if <[InvalidBlockCounter]> >= <[H*W].sub[1]>:
-            - flag <[NPC]> StopMining:1
-            - narrate "Too many errors"
-            - stop
+            - flag <[NPC]> StopMiningStrip:1
+#{            - narrate "Too many block errors"
 
 CheckNewBlock:
     type: task
@@ -149,12 +150,12 @@ CheckNewBlock:
         - ~run BlockConnectionCheck def:<[NPC]>|<[Location]>|<list_single[<[NPC].location>|<[InitialLocation]>]>
     - else if <[Location].is_liquid>:
         - flag <[NPC]> StopMiningBlock:1
-        - narrate StopMiningLiquid
+#{        - narrate StopMiningLiquid
 
 
 
 #NPC moves towards a single target block and simulates mining it, while receiving drops to its inventory
-MiningSubScriptEdit:
+MineSingleBlock:
     type: task
     script:
         - define NPC <[1]>
@@ -167,11 +168,11 @@ MiningSubScriptEdit:
             - ~walk <[CurrentBlockMined].sub[<[Direction]>]> <[NPC]> auto_range
         - if <[NPC].location.distance[<[CurrentBlockMined]>]> <= <[DistanceOfMining]>:
             - if !<[CurrentBlockMined].material.is_transparent>:
-#{                - wait 0.02
-                - animate <[NPC]> ARM_SWING
+                - wait 0.1
+                - ~animate <[NPC]> ARM_SWING
                 - blockcrack <[CurrentBlockMined]> progress:<util.random.int[4].to[7]>
-#{                - wait 0.25s
-                - animate <[NPC]> ARM_SWING
+                - wait 0.4s
+                - ~animate <[NPC]> ARM_SWING
                 - give <[CurrentBlockMined].drops.get[1]> to:<[NPC].inventory>
                 - modifyblock <[CurrentBlockMined]> air
                 - blockcrack <[CurrentBlockMined]> progress:0
@@ -195,4 +196,5 @@ PlaceTorch:
                     - flag <[NPC]> StopMining:1
                     - narrate "I'm out of torches :( My current location is - <[NPC].location.round.simple>"
                     - stop
+            - wait 1s
             - modifyblock <[TargetBlock]> torch

@@ -25,11 +25,11 @@ StripMineDistance: 2
 Strip_Height: 2
 Strip_Width: 2
 
-#Whether NPC places torches upon mining.
+#Whether NPCs place torches upon mining.
 Place_Torches: true
 
-#Whether NPC places torches from its inventory or creates them from nothing. Has no effect if Place_Torches is false.
 Place_Torches_from_Inventory: true
+#If true, the torches will be placed from NPCs inventories. If false, torches will be created out of thin air.
 
 #Distance between torches put down by Miner NPC. Has no effect if Place_Torches is false.
 TorchDistance: 1
@@ -41,3 +41,5 @@ PrefferedTorchAmount: 64
 ItemsNotToRemove:
   - torch
   - wooden_pickaxe
+  - iron_pickaxe
+  - diamond_pickaxe

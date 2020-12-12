@@ -5,7 +5,7 @@ OnServerStart:
         on server start:
             - yaml load:minion_plugin_config.yml id:MinionConfig
 
-#Removes a target entity
+#Removes all minions
 NPCRemove:
     type: world
     events:
@@ -34,7 +34,7 @@ TestCuboid:
         on player right clicks with bone:
             - run TestCuboidFromList def:<list_single[<player.cursor_on.flood_fill[4]>]>
 
-
+#Will be used for advanced mining. Might not have time to implement? :(
 TestCuboidFromList:
     type: task
     script:
@@ -90,7 +90,7 @@ NPCGetAttacked:
             - if <yaml[MinionConfig].read[Monster_Hostility]>:
                 - foreach <server.npcs_named[Minion]> as:NPC:
                     - if <[NPC].is_spawned>:
-#Loop through all monster within 10 tiles of NPC
+#Loop through all monsters within 10 tiles of NPC
                         - foreach <[NPC].location.find.living_entities.within[10]> as:Monster:
 #Check if monster has line-of-sight to NPC
                             - if <[Monster].is_monster> && <[Monster].can_see[<[NPC]>]>:
@@ -123,23 +123,25 @@ BlockConnectionCheck:
         - narrate StopMiningFloodFill
 
 # Enables to command NPCs to walk distances further than ~64 blocks
+#Should use chunkload to make sure walking is succesful?
 LongWalk:
     type: task
     script:
         - define NPC <[1]>
         - define Target <[2]>
-        - narrate <[NPC].location.distance[<[Target]>]>
+#{        - narrate <[NPC].location.distance[<[Target]>]>
+        - if <[NPC].is_Spawned>:
+            - while <[NPC].location.distance[<[Target]>]> > 50 && <[NPC].is_Spawned>:
+                - ~walk <[NPC]> <[Target]> auto_range speed:1
 
-        - while <[NPC].location.distance[<[Target]>]> > 50:
-            - narrate <[NPC].location.distance[<[Target]>]>
-            - ~walk <[NPC]> <[Target]> auto_range speed:2
-
-        - if <[NPC].location.distance[<[Target]>]> <= 50:
-            - ~walk <[NPC]> <[Target]> auto_range speed:2
-            - stop
+            - if <[NPC].location.distance[<[Target]>]> <= 50:
+                - ~walk <[NPC]> <[Target]> auto_range speed:1
+                - stop
+            - else:
+                - narrate "Long walk error, target location is unclear"
+                - stop
         - else:
-            - narrate "Long walk error, Location is unclear"
-            - stop
+            - narrate "Can't use LongWalk command on an unspawned NPC. Is the NPC too far?"
 
 #Deposits all items in .yml config file to a chest
 Deposit:
@@ -192,8 +194,6 @@ ClearInventory:
             - foreach <[NPC].inventory.list_contents> as:slot:
                 - foreach <yaml[MinionConfig].read[ItemsNotToRemove]> as:item:
                     - if <[slot].material.name> == <[item]>:
-                        - narrate <[slot].material.name>
-                        - narrate <[item]>
                         - define flag true
                         - foreach stop
                 - if <[flag]> != true:
@@ -209,6 +209,7 @@ Collect&Deposit&Clear:
 #Checks if NPC can put items in a flagged block
         - if !<[Chest].has_inventory> && <[Chest].material.name> != ender_chest:
             - narrate "I don't have a linked chest :(   My current location is - <[NPC].location.round.simple>"
+            - flag <[NPC]> StopMining:1
             - stop
         - else if <[Chest].has_inventory>:
             - define ChestInventory <[Chest].inventory>
