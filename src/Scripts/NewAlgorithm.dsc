@@ -12,7 +12,7 @@ TopFunction:
     - flag <[NPC]> StopMining:!
     - define NextInitialLocationVector <[Direction].rotate_around_y[-1.5708].round_to_precision[1].mul[<[StripMineDistance].add[<[Width].sub[1]>]>]>
 
-    - while !<[NPC].has_flag[StopMining]>:
+    - while !<[NPC].has_flag[StopMining]>  && <[NPC].is_spawned>:
         - ~run SingleStripMining def:<[NPC]>|<[InitialLocation]>|<[Direction]>|<[Depth]>
         - define InitialLocation:<[InitialLocation].add[<[NextInitialLocationVector]>]>
         - if <[NPC].has_flag[ChestLocation]>:
@@ -62,28 +62,29 @@ SingleStripMining:
     - define NewDepthVector <[NewDepthVector].add[<[Left].mul[<[Width].sub[1]>]>]>
 
     - define NewVerticalLineVector <[Right].add[<[Top].mul[<[Height].sub[1]>]>]>
-    - while <[SavedLoopIndex]> < <[H*W].mul[<[Depth]>]> && !<[NPC].has_flag[StopMiningStrip]> && !<[NPC].has_flag[StopMining]>:
+    - while <[SavedLoopIndex]> < <[H*W].mul[<[Depth]>]> && !<[NPC].has_flag[StopMiningStrip]> && !<[NPC].has_flag[StopMining]> && <[NPC].is_spawned>:
         - define SavedLoopIndex <[loop_index]>
         - flag <[NPC]> StopMiningBlock:!
 #Check front block for hazards
-#If same location gets added to the list more than once - it could clog up the list. Should test that out.
+#If same location gets added to the list more than once - it could clog it up. Should test that out.
         - run CheckNewBlock def:<[NPC]>|<[CurrentLocation].add[<[Front]>]>|<[InitialLocation].add[<[Back]>]>
         - if <[NPC].has_flag[StopMiningBlock]>:
-            - define LocationsNotToMine:->:<[CurrentLocation]>
-            - define LocationsNotToMine:->:<[CurrentLocation].add[<[Front]>]>
-            - define LocationsNotToMine:->:<[CurrentLocation].add[<[Front]>].add[<[Front]>]>
+            - define HazardousLocation:<[CurrentLocation].add[<[Front]>]>
+            - define LocationsNotToMine:->:<[HazardousLocation]>
+            - define LocationsNotToMine:->:<[HazardousLocation].add[<[Front]>]>
+            - define LocationsNotToMine:->:<[HazardousLocation].sub[<[Front]>]>
 #Current block is not on the left side of the strip
             - if <[SavedLoopIndex].sub[1].mod[<[H*W]>]> >= <[Height]>:
-                - define LocationsNotToMine:->:<[CurrentLocation].add[<[Left]>]>
+                - define LocationsNotToMine:->:<[HazardousLocation].add[<[Left]>]>
 #Current block is not on the right side of the strip
             - if <[SavedLoopIndex].sub[1].mod[<[H*W]>]> < <[H*W].sub[<[Height]>]>:
-                - define LocationsNotToMine:->:<[CurrentLocation].add[<[Right]>]>
+                - define LocationsNotToMine:->:<[HazardousLocation].add[<[Right]>]>
 #Current block is not on the top side of the strip
             - if <[SavedLoopIndex].mod[<[Height]>]> != 1 && <[Height]> != 1:
-                - define LocationsNotToMine:->:<[CurrentLocation].above>
+                - define LocationsNotToMine:->:<[HazardousLocation].above>
 #Current block is not on the bottom side of the strip
             - if <[SavedLoopIndex].mod[<[Height]>]> != 0:
-                - define LocationsNotToMine:->:<[CurrentLocation].below>
+                - define LocationsNotToMine:->:<[HazardousLocation].below>
 
 
 #If there is a new block revealed on left side - check it
@@ -102,7 +103,7 @@ SingleStripMining:
 #Checks if current location is not supposed to be mined
         - foreach <[LocationsNotToMine]> as:Location:
             - if <[Location]> == <[CurrentLocation]>:
-                - define LocationsNotToMine <[LocationsNotToMine]>:<-:<[Location]>
+                - define LocationsNotToMine:<-:<[Location]>
                 - flag <[NPC]> StopMiningBlock:1
                 - foreach stop
 #Mine current block
@@ -136,7 +137,7 @@ SingleStripMining:
         - else:
             - define CurrentLocation <[CurrentLocation].below>
 #This line is Greedy, mining could fail earlier than that. Should be changed if I'll have time
-        - if <[InvalidBlockCounter]> >= <[H*W].sub[1]>:
+        - if <[InvalidBlockCounter]> > <[H*W].sub[2]>:
             - flag <[NPC]> StopMiningStrip:1
 #{            - narrate "Too many block errors"
 
@@ -162,25 +163,25 @@ MineSingleBlock:
         - define CurrentBlockMined <[2]>
         - define Direction <[3]>
         - define DistanceOfMining 3.5
-
-        - if <[NPC].location.distance[<[CurrentBlockMined]>]> > <[DistanceOfMining]>:
-#Should change this to a long-walk
-            - ~walk <[CurrentBlockMined].sub[<[Direction]>]> <[NPC]> auto_range
-        - if <[NPC].location.distance[<[CurrentBlockMined]>]> <= <[DistanceOfMining]>:
-            - if !<[CurrentBlockMined].material.is_transparent>:
-                - wait 0.1
-                - ~animate <[NPC]> ARM_SWING
-                - blockcrack <[CurrentBlockMined]> progress:<util.random.int[4].to[7]>
-                - wait 0.4s
-                - ~animate <[NPC]> ARM_SWING
-                - give <[CurrentBlockMined].drops.get[1]> to:<[NPC].inventory>
-                - modifyblock <[CurrentBlockMined]> air
-                - blockcrack <[CurrentBlockMined]> progress:0
+        - if <[NPC].is_spawned>:
+            - if <[NPC].location.distance[<[CurrentBlockMined]>]> > <[DistanceOfMining]>:
+    #Should change this to a long-walk
+                - ~walk <[CurrentBlockMined].sub[<[Direction]>]> <[NPC]> auto_range
+            - if <[NPC].location.distance[<[CurrentBlockMined]>]> <= <[DistanceOfMining]>:
+                - if !<[CurrentBlockMined].material.is_transparent>:
+#{                    - wait 0.1
+                    - ~animate <[NPC]> ARM_SWING
+                    - blockcrack <[CurrentBlockMined]> progress:<util.random.int[4].to[7]>
+#{                    - wait 0.4s
+                    - ~animate <[NPC]> ARM_SWING
+                    - give <[CurrentBlockMined].drops.get[1]> to:<[NPC].inventory>
+                    - modifyblock <[CurrentBlockMined]> air
+                    - blockcrack <[CurrentBlockMined]> progress:0
+                - else:
+                    - narrate "Block I'm trying to mine is transparent :( My current location is - <[NPC].location.round.simple>"
             - else:
-                - narrate "Block I'm trying to mine is transparent :( My current location is - <[NPC].location.round.simple>"
-        - else:
-                - narrate "Can't reach target block"
-                - flag <[NPC]> StopMiningBlock:1
+                    - narrate "Can't reach target block"
+                    - flag <[NPC]> StopMiningBlock:1
 
 #Places a torch at a target spot if enabled in config.
 PlaceTorch:
