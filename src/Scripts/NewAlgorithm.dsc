@@ -162,7 +162,7 @@ MineSingleBlock:
         - define NPC <[1]>
         - define CurrentBlockMined <[2]>
         - define Direction <[3]>
-        - define DistanceOfMining 3.5
+        - define DistanceOfMining <yaml[MinionConfig].read[Mining_Range]>
         - if <[NPC].is_spawned>:
             - if <[NPC].location.distance[<[CurrentBlockMined]>]> > <[DistanceOfMining]>:
     #Should change this to a long-walk

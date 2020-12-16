@@ -1,4 +1,5 @@
---- #Items which NPC is going to deposit into chests. Other items stay in its inventory.
+--- 
+#Items which NPC is going to deposit into chests. Other items stay in its inventory.
 items:
   - diamond
   - emerald_ore
@@ -12,11 +13,10 @@ items:
 #Whether Hostile mobs will attack NPCs on sight. Only works when distance is <=10 blocks.
 Monster_Hostility: true
 
-#List of hostile monsters who are not going to attack NPCs
+#List of hostile monsters who are NOT going to attack NPCs
 Hostile_Monster_Exceptions:
 - enderman
 - creeper
-
 
 #Distance between strips when mining.
 StripMineDistance: 2
@@ -24,6 +24,9 @@ StripMineDistance: 2
 #Dimensions of a single strip
 Strip_Height: 2
 Strip_Width: 2
+
+#Maximum range from which NPC can start mining blocks
+Mining_Range: 4.5
 
 #Whether NPCs place torches upon mining.
 Place_Torches: true

@@ -28,6 +28,20 @@ TestJump:
             - wait 0.3s
             - modifyblock <[Start]> dirt
 
+TestBook_Show:
+    type: world
+    events:
+        on player right clicks with diamond:
+            - adjust <player> show_book:<player.inventory.slot[1]>
+
+Test_Book_Signing:
+    type: world
+    events:
+        on player signs book:
+            - if <context.title> == MinionControl:
+                - determine Book_Script_Name
+#{                - adjust <player> show_book:<player.inventory.slot[1]>
+
 TestCuboid:
     type: world
     events:
@@ -70,6 +84,7 @@ Test:
     events:
         on npc death:
             - if <context.entity.has_flag[Owner]>:
+#determine doesn't work
                 - determine passively <context.entity.inventory.list_contents>
                 - narrate <context.entity.inventory.list_contents> targets:<context.entity.flag[Owner]>
                 - remove <context.entity>
