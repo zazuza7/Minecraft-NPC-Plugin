@@ -186,16 +186,15 @@ Collect:
         - define ChestInventory <[2]>
 #Minimum amount of torches NPC will try to have in its inventory
         - define PrefferedTorchAmount <yaml[MinionConfig].read[PrefferedTorchAmount]>
-        - if <yaml[MinionConfig].read[Place_Torches]>:
-            - if <yaml[MinionConfig].read[Place_Torches_from_Inventory]>:
-                - if <[NPC].inventory.quantity[torch]> < <[PrefferedTorchAmount]>:
-                    - if <[NPC].inventory.quantity[torch].add[<[ChestInventory].quantity[torch]>]> <= <[PrefferedTorchAmount]>:
-                        - give torch quantity:<[ChestInventory].quantity[torch]> to:<[NPC].inventory>
-                        - take material:torch quantity:<[ChestInventory].quantity[torch]> from:<[ChestInventory]>
-                    - else:
-                        - define AmountNeeded <[PrefferedTorchAmount].sub[<[NPC].inventory.quantity[torch]>]>
-                        - give torch quantity:<[AmountNeeded]> to:<[NPC].inventory>
-                        - take material:torch quantity:<[AmountNeeded]> from:<[ChestInventory]>
+        - if <yaml[MinionConfig].read[Place_Torches]> && <yaml[MinionConfig].read[Place_Torches_from_Inventory]>:
+            - if <[NPC].inventory.quantity[torch]> < <[PrefferedTorchAmount]>:
+                - if <[NPC].inventory.quantity[torch].add[<[ChestInventory].quantity[torch]>]> <= <[PrefferedTorchAmount]>:
+                    - give torch quantity:<[ChestInventory].quantity[torch]> to:<[NPC].inventory>
+                    - take material:torch quantity:<[ChestInventory].quantity[torch]> from:<[ChestInventory]>
+                - else:
+                    - define AmountNeeded <[PrefferedTorchAmount].sub[<[NPC].inventory.quantity[torch]>]>
+                    - give torch quantity:<[AmountNeeded]> to:<[NPC].inventory>
+                    - take material:torch quantity:<[AmountNeeded]> from:<[ChestInventory]>
 
 #Clears NPCs inventory of all items except ones specified in configuratory files
 ClearInventory:

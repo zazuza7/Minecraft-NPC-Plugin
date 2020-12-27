@@ -73,16 +73,16 @@ SingleStripMining:
             - define LocationsNotToMine:->:<[HazardousLocation]>
             - define LocationsNotToMine:->:<[HazardousLocation].add[<[Front]>]>
             - define LocationsNotToMine:->:<[HazardousLocation].sub[<[Front]>]>
-#Current block is not on the left side of the strip
+    #Current block is not on the left side of the strip
             - if <[SavedLoopIndex].sub[1].mod[<[H*W]>]> >= <[Height]>:
                 - define LocationsNotToMine:->:<[HazardousLocation].add[<[Left]>]>
-#Current block is not on the right side of the strip
+    #Current block is not on the right side of the strip
             - if <[SavedLoopIndex].sub[1].mod[<[H*W]>]> < <[H*W].sub[<[Height]>]>:
                 - define LocationsNotToMine:->:<[HazardousLocation].add[<[Right]>]>
-#Current block is not on the top side of the strip
+    #Current block is not on the top side of the strip
             - if <[SavedLoopIndex].mod[<[Height]>]> != 1 && <[Height]> != 1:
                 - define LocationsNotToMine:->:<[HazardousLocation].above>
-#Current block is not on the bottom side of the strip
+    #Current block is not on the bottom side of the strip
             - if <[SavedLoopIndex].mod[<[Height]>]> != 0:
                 - define LocationsNotToMine:->:<[HazardousLocation].below>
 
@@ -119,13 +119,13 @@ SingleStripMining:
 #Places a torch
 #If Placing torches is enabled in config
         - if <yaml[MinionConfig].read[Place_Torches]>:
-#If current block mined is in the bottom row
+    #If current block mined is in the bottom row
             - if <[SavedLoopIndex].mod[<[Height]>]> == 0:
-#If the block mined is in the middle column
+        #If the block mined is in the middle column
                 - if <[SavedLoopIndex].sub[1].mod[<[H*W]>]> >= <[Width].div[2].round_down.mul[<[Height]>]> && <[SavedLoopIndex].sub[1].mod[<[H*W]>]> < <[Width].div[2].round_down.mul[<[Height]>].add[<[Height]>]>:
-#If should place torch at current depth
+            #If should place torch at current depth
                     - if <[SavedLoopIndex].sub[1].div[<[H*W]>].round_down.add[1].mod[<yaml[MinionConfig].read[TorchDistance]>]> == 1:
-#If NPC mined the block previously there
+                #If NPC mined the block previously there
                         - if !<[NPC].has_flag[StopMiningBlock]>:
                             - ~run PlaceTorch def:<[NPC]>|<[CurrentLocation]>
 
@@ -136,10 +136,14 @@ SingleStripMining:
             - define CurrentLocation <[CurrentLocation].add[<[NewVerticalLineVector]>]>
         - else:
             - define CurrentLocation <[CurrentLocation].below>
-#This line is Greedy, mining could fail earlier than that. Should be changed if I'll have time
-        - if <[InvalidBlockCounter]> > <[H*W].sub[2]>:
+#Check whether NPC should stop mining
+    #If NPC no longer has a pickaxe
+        - if <[NPC].inventory.slot[1].material.name> != iron_pickaxe && <[NPC].inventory.slot[1].material.name> != diamond_pickaxe:
+            - flag <[NPC]> StopMining:1
+    #This line is Greedy, mining could fail earlier than that. Should be changed if I'll have time
+        - else if <[InvalidBlockCounter]> > <[H*W].sub[2]>:
             - flag <[NPC]> StopMiningStrip:1
-#{            - narrate "Too many block errors"
+            - narrate "Too many block errors"
 
 CheckNewBlock:
     type: task
