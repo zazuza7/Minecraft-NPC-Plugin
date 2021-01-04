@@ -46,8 +46,6 @@ SingleStripMining:
 
     - flag <[NPC]> StopMiningStrip:!
 
-    - define LocationsNotToMine:->:1
-    - define LocationsNotToMine:<-:1
 #Vectors of length 1 with directions relative to mining direction
     - define Left <[Direction].rotate_around_y[1.5708].round_to_precision[1]>
     - define Right <[Direction].rotate_around_y[-1.5708].round_to_precision[1]>
@@ -67,7 +65,7 @@ SingleStripMining:
         - flag <[NPC]> StopMiningBlock:!
 #Check front block for hazards
 #If same location gets added to the list more than once - it could clog it up. Should test that out.
-        - run CheckNewBlock def:<[NPC]>|<[CurrentLocation].add[<[Front]>]>|<[InitialLocation].add[<[Back]>]>
+        - run CheckForHazard def:<[NPC]>|<[CurrentLocation].add[<[Front]>]>|<[InitialLocation].add[<[Back]>]>
         - if <[NPC].has_flag[StopMiningBlock]>:
             - define HazardousLocation:<[CurrentLocation].add[<[Front]>]>
             - define LocationsNotToMine:->:<[HazardousLocation]>
@@ -89,32 +87,40 @@ SingleStripMining:
 
 #If there is a new block revealed on left side - check it
         - if <[SavedLoopIndex].sub[1].mod[<[H*W]>]> < <[Height]>:
-            - run CheckNewBlock def:<[NPC]>|<[CurrentLocation].add[<[Left]>]>|<[InitialLocation].add[<[Back]>]>
+            - run CheckForHazard def:<[NPC]>|<[CurrentLocation].add[<[Left]>]>|<[InitialLocation].add[<[Back]>]>
+            - run CheckForPriorityBlock def:<[NPC]>|<[CurrentLocation].add[<[Left]>]>
 #If there is a new block revealed on right side - check it
         - if <[SavedLoopIndex].sub[1].mod[<[H*W]>]> >= <[H*W].sub[<[Height]>]>:
-            - run CheckNewBlock def:<[NPC]>|<[CurrentLocation].add[<[Right]>]>|<[InitialLocation].add[<[Back]>]>
+            - run CheckForHazard def:<[NPC]>|<[CurrentLocation].add[<[Right]>]>|<[InitialLocation].add[<[Back]>]>
+            - run CheckForPriorityBlock def:<[NPC]>|<[CurrentLocation].add[<[Right]>]>
 #If there is a new block revealed on top side - check it
         - if <[SavedLoopIndex].mod[<[Height]>]> == 1 || <[Height]> == 1:
-            - run CheckNewBlock def:<[NPC]>|<[CurrentLocation].above>|<[InitialLocation].add[<[Back]>]>
+            - run CheckForHazard def:<[NPC]>|<[CurrentLocation].above>|<[InitialLocation].add[<[Back]>]>
+            - run CheckForPriorityBlock def:<[NPC]>|<[CurrentLocation].above>
 #If there is a new block revealed on Bottom side - check it
         - if <[SavedLoopIndex].mod[<[Height]>]> == 0:
-            - run CheckNewBlock def:<[NPC]>|<[CurrentLocation].below>|<[InitialLocation].add[<[Back]>]>
-
+            - run CheckForHazard def:<[NPC]>|<[CurrentLocation].below>|<[InitialLocation].add[<[Back]>]>
+            - run CheckForPriorityBlock def:<[NPC]>|<[CurrentLocation].below>
+#{        - narrate "OUTSIDE: <[NPC].flag[PriorityLocations].as_list>"
 #Checks if current location is not supposed to be mined
-        - foreach <[LocationsNotToMine]> as:Location:
-            - if <[Location]> == <[CurrentLocation]>:
-                - define LocationsNotToMine:<-:<[Location]>
-                - flag <[NPC]> StopMiningBlock:1
-                - foreach stop
+        - if <[LocationsNotToMine].size> > 0:
+            - foreach <[LocationsNotToMine]> as:Location:
+                - if <[Location]> == <[CurrentLocation]>:
+                    - define LocationsNotToMine:<-:<[Location]>
+                    - flag <[NPC]> StopMiningBlock:1
+                    - foreach stop
 #Mine current block
         - if !<[NPC].has_flag[StopMiningBlock]>:
             - ~run MineSingleBlock def:<[NPC]>|<[CurrentLocation]>|<[Direction]>
             - if !<[NPC].has_flag[StopMiningBlock]>:
+                - ~run CheckAndMineAllBlocksInList def:<[NPC]>|<[CurrentLocation]>
                 - define InvalidBlockCounter:0
             - else:
                 - define InvalidBlockCounter:++
+                - flag <[NPC]> PriorityLocations:!
         - else:
             - define InvalidBlockCounter:++
+            - flag <[NPC]> PriorityLocations:!
 
 #Places a torch
 #If Placing torches is enabled in config
@@ -136,6 +142,7 @@ SingleStripMining:
             - define CurrentLocation <[CurrentLocation].add[<[NewVerticalLineVector]>]>
         - else:
             - define CurrentLocation <[CurrentLocation].below>
+
 #Check whether NPC should stop mining
     #If NPC no longer has a pickaxe
         - if <[NPC].inventory.slot[1].material.name> != iron_pickaxe && <[NPC].inventory.slot[1].material.name> != diamond_pickaxe:
@@ -145,7 +152,8 @@ SingleStripMining:
             - flag <[NPC]> StopMiningStrip:1
             - narrate "Too many block errors"
 
-CheckNewBlock:
+#Checks whether a block is dangerous for the NPC
+CheckForHazard:
     type: task
     script:
     - define NPC <[1]>
@@ -157,7 +165,31 @@ CheckNewBlock:
         - flag <[NPC]> StopMiningBlock:1
 #{        - narrate StopMiningLiquid
 
+#Checks whether a block is in a priority block list
+CheckForPriorityBlock:
+    type: task
+    script:
+    - define NPC <[1]>
+    - define Location <[2]>
+#{    - narrate Checkingpriorities
+    - foreach <yaml[MinionConfig].read[Blocks_To_Prioritize]> as:Priority:
+        - if <[Location].material.name> == <[Priority]>:
+            - flag <[NPC]> PriorityLocations:->:<[Location]>
+#{            - narrate "INSIDE: <[NPC].flag[PriorityLocations]>"
+            - foreach stop
 
+CheckAndMineAllBlocksInList:
+    type: task
+    script:
+    - define NPC <[1]>
+    - define CurrentLocation <[2]>
+#{    - narrate "MINELIST: <[PriorityLocations]>"
+    - if <[NPC].flag[PriorityLocations].size> > 0:
+        - foreach <[NPC].flag[PriorityLocations].as_list> as:Location:
+            - define Direction <[Location].sub[<[CurrentLocation]>].round_to_precision[1]>
+            - ~run MineSingleBlock def:<[NPC]>|<[Location]>|<[Direction]>
+#{            - modifyblock <[Location].sub[<[Direction]>]> glass
+            - flag <[NPC]> PriorityLocations:<-:<[Location]>
 
 #NPC moves towards a single target block and simulates mining it, while receiving drops to its inventory
 MineSingleBlock:
@@ -186,6 +218,9 @@ MineSingleBlock:
             - else:
                     - narrate "Can't reach target block"
                     - flag <[NPC]> StopMiningBlock:1
+        - else:
+            - narrate "NPC is not spawned. Cannot mine"
+            - flag <[NPC]> StopMining:1
 
 #Places a torch at a target spot if enabled in config.
 PlaceTorch:

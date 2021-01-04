@@ -10,10 +10,22 @@ items:
   - coal
   - gold_nugget
 
-#Whether Hostile mobs will attack NPCs on sight. Only works when distance is <=10 blocks.
-Monster_Hostility: true
+Blocks_To_Prioritize:
+  - diamond_ore
+  - emerald_ore
+  - lapis_ore
+  - redstone_ore
+  - nether_gold_ore
+  - gold_ore
+  - iron_ore
+  - coal_ore
+  
 
-#List of hostile monsters who are NOT going to attack NPCs
+
+#Whether Hostile mobs will attack NPCs on sight. Attacking occurs only when distance between NPC and a hostile mobs is <=10 blocks.
+Monster_Hostility: false
+
+#List of hostile monsters who are NOT going to attack NPCs. Has no effect if Monster_Hostility is false.
 Hostile_Monster_Exceptions:
 - enderman
 - creeper
@@ -23,21 +35,21 @@ StripMineDistance: 2
 
 #Dimensions of a single strip
 Strip_Height: 2
-Strip_Width: 2
+Strip_Width: 3
 
-#Maximum range from which NPC can start mining blocks
+#Maximum range from which NPC can start mining blocks. 4.5 is default.
 Mining_Range: 4.5
 
 #Whether NPCs place torches upon mining.
 Place_Torches: true
 
 Place_Torches_from_Inventory: true
-#If true, the torches will be placed from NPCs inventories. If false, torches will be created out of thin air.
+#If true, the torches will be placed from NPCs inventories. If false, torches will be created out of thin air. Has no effect if Place_Torches is false.
 
 #Distance between torches put down by Miner NPC. Has no effect if Place_Torches is false.
 TorchDistance: 1
 
-#Amount of torches NPC tries to have before starting a new strip
+#Amount of torches NPC tries to have before starting a new strip. Only has effect if Place_Torches and Place_Torches_from_Inventory are both true.
 PrefferedTorchAmount: 64
 
 #Items which are not removed from NPCs inventory after depositing
