@@ -30,7 +30,6 @@ TopFunction:
     - ~run Collect&Deposit&Clear def:<[NPC]>
 
 
-
 SingleStripMining:
     type: task
     script:
@@ -46,14 +45,14 @@ SingleStripMining:
 
     - flag <[NPC]> StopMiningStrip:!
 
-#Vectors of length 1 with directions relative to mining direction
+    #Vectors of length 1 with directions relative to mining direction
     - define Left <[Direction].rotate_around_y[1.5708].round_to_precision[1]>
     - define Right <[Direction].rotate_around_y[-1.5708].round_to_precision[1]>
     - define Front <[Direction]>
     - define Back <[Direction].rotate_around_y[-1.5708].rotate_around_y[-1.5708].round_to_precision[1]>
     - define Top <location[0,1,0]>
     - define Bottom <location[0,-1,0]>
-#Width*Height
+    #Width*Height
     - define H*W <[Width].mul[<[Height]>]>
 
     - define NewDepthVector <[Front].add[<[Top].mul[<[Height].sub[1]>]>]>
@@ -61,49 +60,49 @@ SingleStripMining:
 
     - define NewVerticalLineVector <[Right].add[<[Top].mul[<[Height].sub[1]>]>]>
     - while <[SavedLoopIndex]> < <[H*W].mul[<[Depth]>]> && !<[NPC].has_flag[StopMiningStrip]> && !<[NPC].has_flag[StopMining]> && <[NPC].is_spawned>:
+#{        - narrate <[Loop_index]>
         - define SavedLoopIndex <[loop_index]>
         - flag <[NPC]> StopMiningBlock:!
-#Check front block for hazards
-#If same location gets added to the list more than once - it could clog it up. Should test that out.
+        #Check front block for hazards
+        #If same location gets added to the list more than once - it could clog it up. Should test that out.
         - run CheckForHazard def:<[NPC]>|<[CurrentLocation].add[<[Front]>]>|<[InitialLocation].add[<[Back]>]>
         - if <[NPC].has_flag[StopMiningBlock]>:
             - define HazardousLocation:<[CurrentLocation].add[<[Front]>]>
             - define LocationsNotToMine:->:<[HazardousLocation]>
             - define LocationsNotToMine:->:<[HazardousLocation].add[<[Front]>]>
             - define LocationsNotToMine:->:<[HazardousLocation].sub[<[Front]>]>
-    #Current block is not on the left side of the strip
+            #Current block is not on the left side of the strip
             - if <[SavedLoopIndex].sub[1].mod[<[H*W]>]> >= <[Height]>:
                 - define LocationsNotToMine:->:<[HazardousLocation].add[<[Left]>]>
-    #Current block is not on the right side of the strip
+            #Current block is not on the right side of the strip
             - if <[SavedLoopIndex].sub[1].mod[<[H*W]>]> < <[H*W].sub[<[Height]>]>:
                 - define LocationsNotToMine:->:<[HazardousLocation].add[<[Right]>]>
-    #Current block is not on the top side of the strip
+            #Current block is not on the top side of the strip
             - if <[SavedLoopIndex].mod[<[Height]>]> != 1 && <[Height]> != 1:
                 - define LocationsNotToMine:->:<[HazardousLocation].above>
-    #Current block is not on the bottom side of the strip
+            #Current block is not on the bottom side of the strip
             - if <[SavedLoopIndex].mod[<[Height]>]> != 0:
                 - define LocationsNotToMine:->:<[HazardousLocation].below>
 
 
-#If there is a new block revealed on left side - check it
+        #If there is a new block revealed on left side - check it
         - if <[SavedLoopIndex].sub[1].mod[<[H*W]>]> < <[Height]>:
-            - run CheckForHazard def:<[NPC]>|<[CurrentLocation].add[<[Left]>]>|<[InitialLocation].add[<[Back]>]>
-            - run CheckForPriorityBlock def:<[NPC]>|<[CurrentLocation].add[<[Left]>]>
-#If there is a new block revealed on right side - check it
+            - ~run CheckForHazard def:<[NPC]>|<[CurrentLocation].add[<[Left]>]>|<[InitialLocation].add[<[Back]>]>
+            - ~run CheckForPriorityBlock def:<[NPC]>|<[CurrentLocation].add[<[Left]>]>|<[Left]>
+        #If there is a new block revealed on right side - check it
         - if <[SavedLoopIndex].sub[1].mod[<[H*W]>]> >= <[H*W].sub[<[Height]>]>:
-            - run CheckForHazard def:<[NPC]>|<[CurrentLocation].add[<[Right]>]>|<[InitialLocation].add[<[Back]>]>
-            - run CheckForPriorityBlock def:<[NPC]>|<[CurrentLocation].add[<[Right]>]>
-#If there is a new block revealed on top side - check it
+            - ~run CheckForHazard def:<[NPC]>|<[CurrentLocation].add[<[Right]>]>|<[InitialLocation].add[<[Back]>]>
+            - ~run CheckForPriorityBlock def:<[NPC]>|<[CurrentLocation].add[<[Right]>]>|<[Right]>
+        #If there is a new block revealed on top side - check it
         - if <[SavedLoopIndex].mod[<[Height]>]> == 1 || <[Height]> == 1:
-            - run CheckForHazard def:<[NPC]>|<[CurrentLocation].above>|<[InitialLocation].add[<[Back]>]>
-            - run CheckForPriorityBlock def:<[NPC]>|<[CurrentLocation].above>
-#If there is a new block revealed on Bottom side - check it
+            - ~run CheckForHazard def:<[NPC]>|<[CurrentLocation].above>|<[InitialLocation].add[<[Back]>]>
+            - ~run CheckForPriorityBlock def:<[NPC]>|<[CurrentLocation].above>|<[Top]>
+        #If there is a new block revealed on Bottom side - check it
         - if <[SavedLoopIndex].mod[<[Height]>]> == 0:
-            - run CheckForHazard def:<[NPC]>|<[CurrentLocation].below>|<[InitialLocation].add[<[Back]>]>
-            - run CheckForPriorityBlock def:<[NPC]>|<[CurrentLocation].below>
-#{        - narrate "OUTSIDE: <[NPC].flag[PriorityLocations].as_list>"
-#Checks if current location is not supposed to be mined
-        - if <[LocationsNotToMine].size> > 0:
+            - ~run CheckForHazard def:<[NPC]>|<[CurrentLocation].below>|<[InitialLocation].add[<[Back]>]>
+            - ~run CheckForPriorityBlock def:<[NPC]>|<[CurrentLocation].below>|<[Bottom]>
+        #Checks if current location is not supposed to be mined
+        - if <[LocationsNotToMine]||null> != null:
             - foreach <[LocationsNotToMine]> as:Location:
                 - if <[Location]> == <[CurrentLocation]>:
                     - define LocationsNotToMine:<-:<[Location]>
@@ -123,15 +122,16 @@ SingleStripMining:
             - flag <[NPC]> PriorityLocations:!
 
 #Places a torch
-#If Placing torches is enabled in config
+        #If Placing torches is enabled in config
         - if <yaml[MinionConfig].read[Place_Torches]>:
-    #If current block mined is in the bottom row
+            - narrate <yaml[MinionConfig].read[Place_Torches]>
+            #If current block mined is in the bottom row
             - if <[SavedLoopIndex].mod[<[Height]>]> == 0:
-        #If the block mined is in the middle column
+                #If the block mined is in the middle column
                 - if <[SavedLoopIndex].sub[1].mod[<[H*W]>]> >= <[Width].div[2].round_down.mul[<[Height]>]> && <[SavedLoopIndex].sub[1].mod[<[H*W]>]> < <[Width].div[2].round_down.mul[<[Height]>].add[<[Height]>]>:
-            #If should place torch at current depth
+                    #If should place torch at current depth
                     - if <[SavedLoopIndex].sub[1].div[<[H*W]>].round_down.add[1].mod[<yaml[MinionConfig].read[TorchDistance]>]> == 1:
-                #If NPC mined the block previously there
+                        #If NPC mined the block previously there
                         - if !<[NPC].has_flag[StopMiningBlock]>:
                             - ~run PlaceTorch def:<[NPC]>|<[CurrentLocation]>
 
@@ -158,12 +158,12 @@ CheckForHazard:
     script:
     - define NPC <[1]>
     - define Location <[2]>
-    - define InitialLocation <[3]>
+    - define InitialLocation <[3]||null>
+    #If target location is air
     - if <[Location].material.name> == air || <[Location].material.name> == cave_air:
-        - ~run BlockConnectionCheck def:<[NPC]>|<[Location]>|<list_single[<[NPC].location>|<[InitialLocation]>]>
+        - ~run BlockConnectionCheck def:<[NPC]>|<[Location]>|<list_single[<[NPC].location>|<[InitialLocation]||null>]>
     - else if <[Location].is_liquid>:
         - flag <[NPC]> StopMiningBlock:1
-#{        - narrate StopMiningLiquid
 
 #Checks whether a block is in a priority block list
 CheckForPriorityBlock:
@@ -171,11 +171,28 @@ CheckForPriorityBlock:
     script:
     - define NPC <[1]>
     - define Location <[2]>
-#{    - narrate Checkingpriorities
+    #Relative location compared to the location that revealed this location
+    - define Direction <[3].xyz>
+
     - foreach <yaml[MinionConfig].read[Blocks_To_Prioritize]> as:Priority:
+        #If block is in priority blocks list
         - if <[Location].material.name> == <[Priority]>:
-            - flag <[NPC]> PriorityLocations:->:<[Location]>
-#{            - narrate "INSIDE: <[NPC].flag[PriorityLocations]>"
+            #Check surrounding blocks for hazards
+            - if <[Direction]> != <location[0,0,-1].xyz>:
+                - run CheckForHazard def:<[NPC]>|<[Location].sub[<location[0,0,-1]>]>
+            - if <[Direction]> != <location[0,0,1].xyz>:
+                - run CheckForHazard def:<[NPC]>|<[Location].sub[<location[0,0,1]>]>
+            - if <[Direction]> != <location[-1,0,0].xyz>:
+                - run CheckForHazard def:<[NPC]>|<[Location].sub[<location[-1,0,0]>]>
+            - if <[Direction]> != <location[1,0,0].xyz>:
+                - run CheckForHazard def:<[NPC]>|<[Location].sub[<location[1,0,0]>]>
+            - if <[Direction]> != <location[0,-1,0].xyz>:
+                - run CheckForHazard def:<[NPC]>|<[Location].sub[<location[0,-1,0]>]>
+            - if <[Direction]> != <location[0,1,0].xyz>:
+                - run CheckForHazard def:<[NPC]>|<[Location].sub[<location[0,1,0]>]>
+            #If Block has no hazards adjacent to it
+            - if !<[NPC].has_flag[StopMiningBlock]>:
+                - flag <[NPC]> PriorityLocations:->:<[Location]>
             - foreach stop
 
 CheckAndMineAllBlocksInList:
@@ -183,12 +200,10 @@ CheckAndMineAllBlocksInList:
     script:
     - define NPC <[1]>
     - define CurrentLocation <[2]>
-#{    - narrate "MINELIST: <[PriorityLocations]>"
     - if <[NPC].flag[PriorityLocations].size> > 0:
         - foreach <[NPC].flag[PriorityLocations].as_list> as:Location:
             - define Direction <[Location].sub[<[CurrentLocation]>].round_to_precision[1]>
             - ~run MineSingleBlock def:<[NPC]>|<[Location]>|<[Direction]>
-#{            - modifyblock <[Location].sub[<[Direction]>]> glass
             - flag <[NPC]> PriorityLocations:<-:<[Location]>
 
 #NPC moves towards a single target block and simulates mining it, while receiving drops to its inventory
@@ -200,10 +215,12 @@ MineSingleBlock:
         - define Direction <[3]>
         - define DistanceOfMining <yaml[MinionConfig].read[Mining_Range]>
         - if <[NPC].is_spawned>:
+            #Tell NPC to move if it can't reach target block
             - if <[NPC].location.distance[<[CurrentBlockMined]>]> > <[DistanceOfMining]>:
-    #Should change this to a long-walk
-                - ~walk <[CurrentBlockMined].sub[<[Direction]>]> <[NPC]> auto_range
+                - ~run LongWalk def:<[NPC]>|<[CurrentBlockMined].sub[<[Direction]>]>
+            #If NPC can reach target block
             - if <[NPC].location.distance[<[CurrentBlockMined]>]> <= <[DistanceOfMining]>:
+                #If target block is not transparent (f.e. Air, cobwebs, GLASS)
                 - if !<[CurrentBlockMined].material.is_transparent>:
 #{                    - wait 0.1
                     - ~animate <[NPC]> ARM_SWING
@@ -228,8 +245,11 @@ PlaceTorch:
     script:
         - define NPC <[1]>
         - define TargetBlock <[2]>
+        #If block is solid
         - if <[TargetBlock].below.material.is_solid>:
+            #If torch placement from inventory is enabled
             - if <yaml[MinionConfig].read[Place_Torches_from_Inventory]>:
+                #If there are torches in inventory
                 - if <[NPC].inventory.contains.material[torch]>:
                     - take material:torch from:<[NPC].inventory>
                 - else:

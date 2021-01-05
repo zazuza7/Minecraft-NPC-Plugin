@@ -87,6 +87,7 @@ Test:
 #determine doesn't work
                 - determine passively <context.entity.inventory.list_contents>
                 - narrate <context.entity.inventory.list_contents> targets:<context.entity.flag[Owner]>
+                - narrate "I died!!! My chests location is: <context.entity.flag[ChestLocation].as_location.simple||null>"
                 - remove <context.entity>
 
 #Loads config file and reloads scripts
@@ -105,17 +106,19 @@ NPCGetAttacked:
             - if <yaml[MinionConfig].read[Monster_Hostility]>:
                 - foreach <server.npcs_named[Minion]> as:NPC:
                     - if <[NPC].is_spawned>:
-#Loop through all monsters within 10 tiles of NPC
+                        #Loop through all monsters within 10 tiles of NPC
                         - foreach <[NPC].location.find.living_entities.within[10]> as:Monster:
-#Check if monster has line-of-sight to NPC
+                            #Checks if monster has line-of-sight to NPC
                             - if <[Monster].is_monster> && <[Monster].can_see[<[NPC]>]>:
-#If monster is not on exception list - attack NPC
+                                #If monster is not on exception list - it attacks NPC
                                 - if <yaml[MinionConfig].read[Hostile_Monster_Exceptions].find[<[Monster].entity_type>]> == -1:
                                     - attack <[Monster]> target:<[NPC]>
+                                    #Stops attacking if NPC is no longer spawned or distance between them is more than 20 blocks or monster loses line of sight to NPC
                                     - waituntil rate:1s !<[NPC].is_spawned> || <[Monster].location.distance[<[NPC].location>]> > 20 || !<[Monster].can_see[<[NPC]>]>
                                     - attack <[Monster]> cancel
 
-#Checks if NewLocation can find one of the old locations by using flood_fill tag
+#Checks if NewLocation is a part of the same cave as one of the old connections.
+#In other words, it checks whether there is an air route connecting old and new locations
 #Flags the NPC if unable
 BlockConnectionCheck:
     type: task
@@ -125,30 +128,32 @@ BlockConnectionCheck:
         - define OldLocations <[3]>
         - define FloodFillDistance 6
 
-#Removes Old locations which are too far to be found in the 2nd foreach
+#Removes Old locations which are too far to be found in the 2nd loop
         - foreach <[OldLocations]> as:OldLocation:
-            - if <[OldLocation].distance[<[NewLocation]>]> > <[FloodFillDistance]>:
-               - define OldLocations:<-:<[OldLocation]>
+            - if <[OldLocation]||null> != null:
+                - define OldLocations:<-:<[OldLocation]>
+            - else if <[OldLocation].distance[<[NewLocation]>]> > <[FloodFillDistance]>:
+                - define OldLocations:<-:<[OldLocation]>
 
         - foreach <[OldLocations]> as:OldLocation:
             - foreach <[NewLocation].flood_fill[<[FloodFillDistance]>].types[air|cave_air|torch]> as:Location:
                 - if <[OldLocation].simple> == <[Location].simple>:
                     - stop
         - flag <[NPC]> StopMiningBlock:1
-        - narrate StopMiningFloodFill
 
-# Enables to command NPCs to walk distances further than ~64 blocks
+#Enables to command NPCs to walk distances further than ~64 blocks
 #Should use chunkload to make sure walking is succesful?
 LongWalk:
     type: task
     script:
         - define NPC <[1]>
         - define Target <[2]>
-#{        - narrate <[NPC].location.distance[<[Target]>]>
+#{        - if !<[NPC].location.chunk.is_loaded>: Implement chunkload here?
+#{        - if !<[Target].location.chunk.is_loaded>:
         - if <[NPC].is_Spawned>:
             - while <[NPC].location.distance[<[Target]>]> > 50 && <[NPC].is_Spawned>:
+                - narrate <[NPC].location.distance[<[Target]>]>
                 - ~walk <[NPC]> <[Target]> auto_range speed:1
-
             - if <[NPC].location.distance[<[Target]>]> <= 50:
                 - ~walk <[NPC]> <[Target]> auto_range speed:1
                 - stop
@@ -158,7 +163,7 @@ LongWalk:
         - else:
             - narrate "Can't use LongWalk command on an unspawned NPC. Is the NPC too far?"
 
-#Deposits all items in .yml config file to a chest
+#Deposits all items in .yml config file's "items" list into a chest
 Deposit:
     type: task
     script:
@@ -166,7 +171,7 @@ Deposit:
         - define TargetInventory <[2]>
 
         - foreach <yaml[MinionConfig].read[items]> as:item:
-#If Items can fit into chest
+            #If Items can fit into chest
             - if <[TargetInventory].can_fit[<[item]>].quantity[<[NPC].inventory.quantity.material[<[item]>]>]>:
                 - give <[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> to:<[TargetInventory]>
                 - take material:<[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> from:<[NPC].inventory>
@@ -184,9 +189,11 @@ Collect:
     script:
         - define NPC <[1]>
         - define ChestInventory <[2]>
-#Minimum amount of torches NPC will try to have in its inventory
+        #Minimum amount of torches NPC will try to have in its inventory
         - define PrefferedTorchAmount <yaml[MinionConfig].read[PrefferedTorchAmount]>
+        #If torch placement and torch placement from inventory are enabled
         - if <yaml[MinionConfig].read[Place_Torches]> && <yaml[MinionConfig].read[Place_Torches_from_Inventory]>:
+            #If currently NPC has less torches than specified
             - if <[NPC].inventory.quantity[torch]> < <[PrefferedTorchAmount]>:
                 - if <[NPC].inventory.quantity[torch].add[<[ChestInventory].quantity[torch]>]> <= <[PrefferedTorchAmount]>:
                     - give torch quantity:<[ChestInventory].quantity[torch]> to:<[NPC].inventory>
@@ -196,14 +203,16 @@ Collect:
                     - give torch quantity:<[AmountNeeded]> to:<[NPC].inventory>
                     - take material:torch quantity:<[AmountNeeded]> from:<[ChestInventory]>
 
-#Clears NPCs inventory of all items except ones specified in configuratory files
+
+
+#Clears NPCs inventory of all items except ones specified in configuratory file's 'ItemsNotToRemove' list
 ClearInventory:
     type: task
     script:
         - define NPC <[1]>
         - define ChestInventory <[2]>
         - define flag false
-#If NPCs chest is not full
+        #If NPCs chest is not full.
         - if <[ChestInventory].first_empty> != -1:
             - foreach <[NPC].inventory.list_contents> as:slot:
                 - foreach <yaml[MinionConfig].read[ItemsNotToRemove]> as:item:
@@ -220,7 +229,7 @@ Collect&Deposit&Clear:
     script:
         - define NPC <[1]>
         - define Chest <[NPC].flag[ChestLocation].as_location>
-#Checks if NPC can put items in a flagged block
+        #Checks if NPC can put items in a flagged block
         - if !<[Chest].has_inventory> && <[Chest].material.name> != ender_chest:
             - narrate "I don't have a linked chest :(   My current location is - <[NPC].location.round.simple>"
             - flag <[NPC]> StopMining:1
