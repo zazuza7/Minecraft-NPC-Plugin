@@ -214,6 +214,7 @@ MineSingleBlock:
         - define CurrentBlockMined <[2]>
         - define Direction <[3]>
         - define DistanceOfMining <yaml[MinionConfig].read[Mining_Range]>
+        - define MiningTime <yaml[MinionConfig].read[MiningTime]>
         - if <[NPC].is_spawned>:
             #Tell NPC to move if it can't reach target block
             - if <[NPC].location.distance[<[CurrentBlockMined]>]> > <[DistanceOfMining]>:
@@ -222,10 +223,10 @@ MineSingleBlock:
             - if <[NPC].location.distance[<[CurrentBlockMined]>]> <= <[DistanceOfMining]>:
                 #If target block is not transparent (f.e. Air, cobwebs, GLASS)
                 - if !<[CurrentBlockMined].material.is_transparent>:
-#{                    - wait 0.1
+                    - wait <[MiningTime].mul[0.2]>
                     - ~animate <[NPC]> ARM_SWING
                     - blockcrack <[CurrentBlockMined]> progress:<util.random.int[4].to[7]>
-#{                    - wait 0.4s
+                    - wait <[MiningTime].mul[0.8]>
                     - ~animate <[NPC]> ARM_SWING
                     - give <[CurrentBlockMined].drops.get[1]> to:<[NPC].inventory>
                     - modifyblock <[CurrentBlockMined]> air

@@ -148,14 +148,15 @@ LongWalk:
     script:
         - define NPC <[1]>
         - define Target <[2]>
+        - define Speed <yaml[MinionConfig].read[MovementSpeed]>
 #{        - if !<[NPC].location.chunk.is_loaded>: Implement chunkload here?
 #{        - if !<[Target].location.chunk.is_loaded>:
         - if <[NPC].is_Spawned>:
             - while <[NPC].location.distance[<[Target]>]> > 50 && <[NPC].is_Spawned>:
                 - narrate <[NPC].location.distance[<[Target]>]>
-                - ~walk <[NPC]> <[Target]> auto_range speed:1
+                - ~walk <[NPC]> <[Target]> auto_range speed:<[Speed]>
             - if <[NPC].location.distance[<[Target]>]> <= 50:
-                - ~walk <[NPC]> <[Target]> auto_range speed:1
+                - ~walk <[NPC]> <[Target]> auto_range speed:<[Speed]>
                 - stop
             - else:
                 - narrate "Long walk error, target location is unclear"
