@@ -5,14 +5,14 @@ TopFunction:
     - define Height <yaml[MinionConfig].read[Strip_Height]>
     - define StripMineDistance <yaml[MinionConfig].read[StripMineDistance]>
 #Should expose this variable to .yml?
-    - define Depth 2
+    - define Depth 999
     - define NPC <[1]>
     - define InitialLocation <[2]>
     - define Direction <[3]>
     - flag <[NPC]> StopMining:!
     - define NextInitialLocationVector <[Direction].rotate_around_y[-1.5708].round_to_precision[1].mul[<[StripMineDistance].add[<[Width].sub[1]>]>]>
 
-    - while !<[NPC].has_flag[StopMining]>  && <[NPC].is_spawned>:
+    - while !<[NPC].has_flag[StopMining]> && <[NPC].is_spawned>:
         - ~run SingleStripMining def:<[NPC]>|<[InitialLocation]>|<[Direction]>|<[Depth]>
         - define InitialLocation:<[InitialLocation].add[<[NextInitialLocationVector]>]>
         - if <[NPC].has_flag[ChestLocation]>:
@@ -60,7 +60,6 @@ SingleStripMining:
 
     - define NewVerticalLineVector <[Right].add[<[Top].mul[<[Height].sub[1]>]>]>
     - while <[SavedLoopIndex]> < <[H*W].mul[<[Depth]>]> && !<[NPC].has_flag[StopMiningStrip]> && !<[NPC].has_flag[StopMining]> && <[NPC].is_spawned>:
-#{        - narrate <[Loop_index]>
         - define SavedLoopIndex <[loop_index]>
         - flag <[NPC]> StopMiningBlock:!
         #Check front block for hazards
@@ -97,6 +96,7 @@ SingleStripMining:
         - if <[SavedLoopIndex].mod[<[Height]>]> == 1 || <[Height]> == 1:
             - ~run CheckForHazard def:<[NPC]>|<[CurrentLocation].above>|<[InitialLocation].add[<[Back]>]>
             - ~run CheckForPriorityBlock def:<[NPC]>|<[CurrentLocation].above>|<[Top]>
+            - ~run CheckIfAffectedByGravity def:<[NPC]>|<[CurrentLocation].above>
         #If there is a new block revealed on Bottom side - check it
         - if <[SavedLoopIndex].mod[<[Height]>]> == 0:
             - ~run CheckForHazard def:<[NPC]>|<[CurrentLocation].below>|<[InitialLocation].add[<[Back]>]>
@@ -124,13 +124,12 @@ SingleStripMining:
 #Places a torch
         #If Placing torches is enabled in config
         - if <yaml[MinionConfig].read[Place_Torches]>:
-            - narrate <yaml[MinionConfig].read[Place_Torches]>
             #If current block mined is in the bottom row
             - if <[SavedLoopIndex].mod[<[Height]>]> == 0:
                 #If the block mined is in the middle column
                 - if <[SavedLoopIndex].sub[1].mod[<[H*W]>]> >= <[Width].div[2].round_down.mul[<[Height]>]> && <[SavedLoopIndex].sub[1].mod[<[H*W]>]> < <[Width].div[2].round_down.mul[<[Height]>].add[<[Height]>]>:
                     #If should place torch at current depth
-                    - if <[SavedLoopIndex].sub[1].div[<[H*W]>].round_down.add[1].mod[<yaml[MinionConfig].read[TorchDistance]>]> == 1:
+                    - if <[SavedLoopIndex].sub[1].div[<[H*W]>].round_down.add[1].mod[<yaml[MinionConfig].read[Torch_Distance]>]> == 1:
                         #If NPC mined the block previously there
                         - if !<[NPC].has_flag[StopMiningBlock]>:
                             - ~run PlaceTorch def:<[NPC]>|<[CurrentLocation]>
@@ -144,13 +143,22 @@ SingleStripMining:
             - define CurrentLocation <[CurrentLocation].below>
 
 #Check whether NPC should stop mining
-    #If NPC no longer has a pickaxe
+        #If NPC no longer has a pickaxe
         - if <[NPC].inventory.slot[1].material.name> != iron_pickaxe && <[NPC].inventory.slot[1].material.name> != diamond_pickaxe:
             - flag <[NPC]> StopMining:1
-    #This line is Greedy, mining could fail earlier than that. Should be changed if I'll have time
+        #If the count of invalid blocks in a row is so high that it's impossible for the NPC to continue moving forward
         - else if <[InvalidBlockCounter]> > <[H*W].sub[2]>:
             - flag <[NPC]> StopMiningStrip:1
-            - narrate "Too many block errors"
+
+#Checks whether a block is affected by gravity
+CheckIfAffectedByGravity:
+    type: task
+    script:
+    - define NPC <[1]>
+    - define Location <[2]>
+    - if <[Location].material.has_gravity>:
+        - flag <[NPC]> StopMiningBlock:1
+
 
 #Checks whether a block is dangerous for the NPC
 CheckForHazard:
@@ -162,7 +170,8 @@ CheckForHazard:
     #If target location is air
     - if <[Location].material.name> == air || <[Location].material.name> == cave_air:
         - ~run BlockConnectionCheck def:<[NPC]>|<[Location]>|<list_single[<[NPC].location>|<[InitialLocation]||null>]>
-    - else if <[Location].is_liquid>:
+    #If location does not block movement. Triggers on air, liquids, cobwebs. Considering it a hazard because it might open up new caves
+    - else if !<[Location].material.is_solid>:
         - flag <[NPC]> StopMiningBlock:1
 
 #Checks whether a block is in a priority block list
@@ -214,30 +223,35 @@ MineSingleBlock:
         - define CurrentBlockMined <[2]>
         - define Direction <[3]>
         - define DistanceOfMining <yaml[MinionConfig].read[Mining_Range]>
-        - define MiningTime <yaml[MinionConfig].read[MiningTime]>
+        #The time it would take for a player to break the block with an iron pickaxe. Assumes that the block mined is best mined with a pickaxe, therefore not all times (dirt f.e.) are accurate.
+        #More info on block breaking times: https://minecraft.gamepedia.com/Breaking
+        - define MiningTime <[CurrentBlockMined].material.hardness.div[6].mul[1.5]>
+        #Mining time gets multiplied by the multiplier which is specified in denizen/MinionCOnfig.yml
+        - define MiningTime <[MiningTime].mul[<yaml[MinionConfig].read[Mining_Time_Multiplier]>]>
         - if <[NPC].is_spawned>:
-            #Tell NPC to move if it can't reach target block
-            - if <[NPC].location.distance[<[CurrentBlockMined]>]> > <[DistanceOfMining]>:
-                - ~run LongWalk def:<[NPC]>|<[CurrentBlockMined].sub[<[Direction]>]>
-            #If NPC can reach target block
-            - if <[NPC].location.distance[<[CurrentBlockMined]>]> <= <[DistanceOfMining]>:
-                #If target block is not transparent (f.e. Air, cobwebs, GLASS)
-                - if !<[CurrentBlockMined].material.is_transparent>:
-                    - wait <[MiningTime].mul[0.2]>
-                    - ~animate <[NPC]> ARM_SWING
-                    - blockcrack <[CurrentBlockMined]> progress:<util.random.int[4].to[7]>
-                    - wait <[MiningTime].mul[0.8]>
-                    - ~animate <[NPC]> ARM_SWING
-                    - give <[CurrentBlockMined].drops.get[1]> to:<[NPC].inventory>
-                    - modifyblock <[CurrentBlockMined]> air
-                    - blockcrack <[CurrentBlockMined]> progress:0
+            - if <[MiningTime]> >= 0:
+                #Tell NPC to move if it can't reach target block
+                - if <[NPC].location.distance[<[CurrentBlockMined]>]> > <[DistanceOfMining]>:
+                    - ~run LongWalk def:<[NPC]>|<[CurrentBlockMined].sub[<[Direction]>]>
+                #If NPC can reach target block
+                - if <[NPC].location.distance[<[CurrentBlockMined]>]> <= <[DistanceOfMining]>:
+                    #If target block is solid, therefore it can be mined
+                    - if <[CurrentBlockMined].material.is_solid>:
+                        - wait <[MiningTime].mul[0.2]>
+                        - ~animate <[NPC]> ARM_SWING
+                        - blockcrack <[CurrentBlockMined]> progress:<util.random.int[4].to[7]>
+                        - wait <[MiningTime].mul[0.8]>
+                        - ~animate <[NPC]> ARM_SWING
+                        - give <[CurrentBlockMined].drops.get[1]> to:<[NPC].inventory>
+                        - modifyblock <[CurrentBlockMined]> air
+                        - blockcrack <[CurrentBlockMined]> progress:0
+                #Can't reach target block
                 - else:
-                    - narrate "Block I'm trying to mine is transparent :( My current location is - <[NPC].location.round.simple>"
+                        - flag <[NPC]> StopMiningBlock:1s
             - else:
-                    - narrate "Can't reach target block"
-                    - flag <[NPC]> StopMiningBlock:1
+                - flag <[NPC]> StopMiningBlock:1s
+        #NPC is not spawned
         - else:
-            - narrate "NPC is not spawned. Cannot mine"
             - flag <[NPC]> StopMining:1
 
 #Places a torch at a target spot if enabled in config.

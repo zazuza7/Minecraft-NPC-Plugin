@@ -1,6 +1,6 @@
 --- 
-#Items which NPC is going to deposit into chests. Other items stay in its inventory.
-items:
+#Items which NPC is going to deposit into chests. Other items get removed, unless specified in the 'ItemsNotToRemove' list below.
+Items:
   - diamond
   - emerald_ore
   - lapis_lazuli
@@ -10,6 +10,14 @@ items:
   - coal
   - gold_nugget
 
+#Items which are not removed from NPCs inventory after depositing.
+Items_Not_To_Remove:
+  - torch
+  - wooden_pickaxe
+  - iron_pickaxe
+  - diamond_pickaxe
+
+#Blocks which NPC mines even if they are not in its direct path.
 Blocks_To_Prioritize:
   - diamond_ore
   - emerald_ore
@@ -29,37 +37,30 @@ Hostile_Monster_Exceptions:
 - enderman
 - creeper
 
-#Time (in seconds) it takes for an NPC to mine a single block.
-MiningTime: 0.1
+#Multiplies the time it takes for a NPC to mine a block. NPC mines blocks as if it were using an iron pickaxe by default.
+Mining_Time_Multiplier: 1
 
 #Multiplies NPC movement speed. Using values lower than 0.7 or higher than 2 is not recommended.
-MovementSpeed: 10
+Movement_Speed: 1
 
 #Distance between strips when mining.
 StripMineDistance: 2
 
-#Dimensions of a single strip
+#Dimensions of a single strip.
 Strip_Height: 2
 Strip_Width: 3
 
 #Maximum range from which NPC can start mining blocks. 4.5 is default.
-Mining_Range: 4.5
+Mining_Range: 3.5
 
 #Whether NPCs place torches upon mining.
-Place_Torches: true
+Place_Torches: false
 
-Place_Torches_from_Inventory: true
 #If true, the torches will be placed from NPCs inventories. If false, torches will be created out of thin air. Has no effect if Place_Torches is false.
+Place_Torches_from_Inventory: false
 
 #Distance between torches put down by Miner NPC. Has no effect if Place_Torches is false.
-TorchDistance: 1
+Torch_Distance: 4
 
 #Amount of torches NPC tries to have before starting a new strip. Only has effect if Place_Torches and Place_Torches_from_Inventory are both true.
-PrefferedTorchAmount: 64
-
-#Items which are not removed from NPCs inventory after depositing
-ItemsNotToRemove:
-  - torch
-  - wooden_pickaxe
-  - iron_pickaxe
-  - diamond_pickaxe
+Preffered_Torch_Amount: 64

@@ -1,101 +1,46 @@
-#Config is loaded
+#Configuratory file is loaded on server start
 OnServerStart:
     type: world
     events:
         on server start:
-            - yaml load:minion_plugin_config.yml id:MinionConfig
+            - if <server.has_file[MinionConfig.yml]>:
+                - yaml load:MinionConfig.yml id:MinionConfig
+            - else:
+                - debug error "MinionConfig.yml not found in plugins/Denizen folder"
 
-#Removes all minions
-NPCRemove:
+InitialMessage:
     type: world
     events:
-        on player right clicks with diamond_sword:
-            - remove <server.npcs_named[Minion]>
-
-NPCWalk:
-    type: world
-    events:
-        on player right clicks with carrot:
-            - run LongWalk def:<player.flag[selected].as_npc>|<player.cursor_on>
+        on player join:
+            - narrate "Welcome! This server seems to be using a Minion plug-in."
+            - narrate "Naming a signed book 'MinionControl' will give it an ability to create and control minion NPCs"
+            - narrate "Right click while holding a 'MinionControl' book in your off-hand to learn more!"
 
 #Makes the NPC jump 1 block and places a block underneath
-TestJump:
-    type: world
-    events:
-        on player right clicks with bread:
-            - define Start <player.target.location>
-            - adjust <player.target> velocity:0,0.38,0
-            - wait 0.3s
-            - modifyblock <[Start]> dirt
+#{TestJump:
+#{    type: world
+#{    events:
+#{        on player right clicks with bread:
+#{            - define Start <player.target.location>
+#{            - adjust <player.target> velocity:0,0.38,0
+#{            - wait 0.3s
+#{            - modifyblock <[Start]> dirt
 
-TestBook_Show:
-    type: world
-    events:
-        on player right clicks with diamond:
-            - adjust <player> show_book:<player.inventory.slot[1]>
-
-Test_Book_Signing:
+#If a player signs a book and names it 'MinionControl'(not case sensitive) it gets transformed to a book specified in MinionControlBook script.
+Book_Signing:
     type: world
     events:
         on player signs book:
-            - if <context.title> == MinionControl:
-                - determine Book_Script_Name
-#{                - adjust <player> show_book:<player.inventory.slot[1]>
+            - if <context.title> = MinionControl:
+                - determine MinionControlBook
 
-TestCuboid:
-    type: world
-    events:
-        on player right clicks with bone:
-            - run TestCuboidFromList def:<list_single[<player.cursor_on.flood_fill[4]>]>
-
-#Will be used for advanced mining. Might not have time to implement? :(
-TestCuboidFromList:
-    type: task
-    script:
-        - define Blocks <[1]>
-        - foreach <[Blocks]> as:Block:
-            - if <[loop_index]> == 1:
-                #{define all the mins and maxes
-                - define MinX <[Block].x>
-                - define MaxX <[Block].x>
-                - define MinY <[Block].y>
-                - define MaxY <[Block].y>
-                - define MinZ <[Block].z>
-                - define MaxZ <[Block].z>
-            - else:
-                #{update mins and maxes
-                - narrate <[Block]> targets:<server.players>
-                - define MinX <[MinX].min[<[Block].x>]>
-                - define MaxX <[MaxX].max[<[Block].x>]>
-                - define MinY <[MinY].min[<[Block].y>]>
-                - define MaxY <[MaxY].max[<[Block].y>]>
-                - define MinZ <[MinZ].min[<[Block].z>]>
-                - define MaxZ <[MaxZ].max[<[Block].z>]>
-        - define Cuboid1 <location[<[MinX]>,<[MinY]>,<[MinZ]>].to_cuboid[<[MaxX]>,<[MaxY]>,<[MaxZ]>]>
-#{        - define Cuboid1 <[<[MinX]>,<[MinY]>,<[MinZ]>].location.to_cuboid[<[MaxX]>,<[MaxY]>,<[MaxZ]>]>
-        #Create cuboid <LocationTag.to_cuboid[<location>]>
-#{        - modifyblock <[Cuboid1]> glass
-        - modifyblock <cuboid[<[MinX]>,<[MinY]>,<[MinZ]>,world|<[MaxX]>,<[MaxY]>,<[MaxZ]>,world]> glass
-        #UNION to perfect the shape
-
-#Narrates NPCs inventory contents after its death. Finally works properly(?)
-Test:
-    type: world
-    events:
-        on npc death:
-            - if <context.entity.has_flag[Owner]>:
-#determine doesn't work
-                - determine passively <context.entity.inventory.list_contents>
-                - narrate <context.entity.inventory.list_contents> targets:<context.entity.flag[Owner]>
-                - narrate "I died!!! My chests location is: <context.entity.flag[ChestLocation].as_location.simple||null>"
-                - remove <context.entity>
 
 #Loads config file and reloads scripts
 NPCLoadYaml:
     type: world
     events:
         on player right clicks with diamond_pickaxe:
-            - yaml load:minion_plugin_config.yml id:MinionConfig
+            - yaml load:MinionConfig.yml id:MinionConfig
             - reload
 
 #If a hostile mob is closer than 10 tiles and can see the NPC, it starts attacking it.
@@ -128,9 +73,9 @@ BlockConnectionCheck:
         - define OldLocations <[3]>
         - define FloodFillDistance 6
 
-#Removes Old locations which are too far to be found in the 2nd loop
+        #Removes Old locations which are too far to be found in the 2nd loop
         - foreach <[OldLocations]> as:OldLocation:
-            - if <[OldLocation]||null> != null:
+            - if <[OldLocation]||null> == null:
                 - define OldLocations:<-:<[OldLocation]>
             - else if <[OldLocation].distance[<[NewLocation]>]> > <[FloodFillDistance]>:
                 - define OldLocations:<-:<[OldLocation]>
@@ -141,14 +86,14 @@ BlockConnectionCheck:
                     - stop
         - flag <[NPC]> StopMiningBlock:1
 
-#Enables to command NPCs to walk distances further than ~64 blocks
-#Should use chunkload to make sure walking is succesful?
+#Using this instead of built-in -walk command because -walk seems to time out rather quickly. NPC can only move ~64 blocks at normal speed until -walk times out.
+#Could use chunkload to make sure walking is succesful?
 LongWalk:
     type: task
     script:
         - define NPC <[1]>
         - define Target <[2]>
-        - define Speed <yaml[MinionConfig].read[MovementSpeed]>
+        - define Speed <yaml[MinionConfig].read[Movement_Speed]>
 #{        - if !<[NPC].location.chunk.is_loaded>: Implement chunkload here?
 #{        - if !<[Target].location.chunk.is_loaded>:
         - if <[NPC].is_Spawned>:
@@ -171,7 +116,7 @@ Deposit:
         - define NPC <[1]>
         - define TargetInventory <[2]>
 
-        - foreach <yaml[MinionConfig].read[items]> as:item:
+        - foreach <yaml[MinionConfig].read[Items]> as:item:
             #If Items can fit into chest
             - if <[TargetInventory].can_fit[<[item]>].quantity[<[NPC].inventory.quantity.material[<[item]>]>]>:
                 - give <[item]> quantity:<[NPC].inventory.quantity.material[<[item]>]> to:<[TargetInventory]>
@@ -191,7 +136,7 @@ Collect:
         - define NPC <[1]>
         - define ChestInventory <[2]>
         #Minimum amount of torches NPC will try to have in its inventory
-        - define PrefferedTorchAmount <yaml[MinionConfig].read[PrefferedTorchAmount]>
+        - define PrefferedTorchAmount <yaml[MinionConfig].read[Preffered_Torch_Amount]>
         #If torch placement and torch placement from inventory are enabled
         - if <yaml[MinionConfig].read[Place_Torches]> && <yaml[MinionConfig].read[Place_Torches_from_Inventory]>:
             #If currently NPC has less torches than specified
@@ -204,9 +149,7 @@ Collect:
                     - give torch quantity:<[AmountNeeded]> to:<[NPC].inventory>
                     - take material:torch quantity:<[AmountNeeded]> from:<[ChestInventory]>
 
-
-
-#Clears NPCs inventory of all items except ones specified in configuratory file's 'ItemsNotToRemove' list
+#Clears NPCs inventory of all items except ones specified in configuratory file's 'Items_Not_To_Remove' list
 ClearInventory:
     type: task
     script:
@@ -216,7 +159,7 @@ ClearInventory:
         #If NPCs chest is not full.
         - if <[ChestInventory].first_empty> != -1:
             - foreach <[NPC].inventory.list_contents> as:slot:
-                - foreach <yaml[MinionConfig].read[ItemsNotToRemove]> as:item:
+                - foreach <yaml[MinionConfig].read[Items_Not_To_Remove]> as:item:
                     - if <[slot].material.name> == <[item]>:
                         - define flag true
                         - foreach stop
