@@ -29,7 +29,6 @@ TopFunction:
     - ~run LongWalk def:<[NPC]>|<[NPC].flag[ChestLocation]>
     - ~run Collect&Deposit&Clear def:<[NPC]>
 
-
 SingleStripMining:
     type: task
     script:

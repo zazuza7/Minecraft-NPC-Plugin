@@ -34,14 +34,15 @@ Book_Signing:
             - if <context.title> = MinionControl:
                 - determine MinionControlBook
 
-
-#Loads config file and reloads scripts
-NPCLoadYaml:
+OnNPCDeath:
     type: world
     events:
-        on player right clicks with diamond_pickaxe:
-            - yaml load:MinionConfig.yml id:MinionConfig
-            - reload
+        on npc death:
+            - if <context.entity.has_flag[Owner]>:
+#determine doesn't work
+                - determine passively <context.entity.inventory.list_contents>
+                - narrate "I died!!! My chests location is: <context.entity.flag[ChestLocation].as_location.simple||null>"
+                - remove <context.entity>
 
 #If a hostile mob is closer than 10 tiles and can see the NPC, it starts attacking it.
 NPCGetAttacked:
@@ -94,11 +95,8 @@ LongWalk:
         - define NPC <[1]>
         - define Target <[2]>
         - define Speed <yaml[MinionConfig].read[Movement_Speed]>
-#{        - if !<[NPC].location.chunk.is_loaded>: Implement chunkload here?
-#{        - if !<[Target].location.chunk.is_loaded>:
         - if <[NPC].is_Spawned>:
             - while <[NPC].location.distance[<[Target]>]> > 50 && <[NPC].is_Spawned>:
-                - narrate <[NPC].location.distance[<[Target]>]>
                 - ~walk <[NPC]> <[Target]> auto_range speed:<[Speed]>
             - if <[NPC].location.distance[<[Target]>]> <= 50:
                 - ~walk <[NPC]> <[Target]> auto_range speed:<[Speed]>
