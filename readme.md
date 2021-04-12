@@ -3,5 +3,7 @@ This project uses Denizen scripting language to allow players to spawn customiza
 The project is no longer updated and might now work properly on newer software versions than those specified:
 
 Minecraft - 1.16.4
+
 Citizens - 2.0.27-b2220
+
 Denizen - 1.1.8-b1723-REL
